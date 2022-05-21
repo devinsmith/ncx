@@ -18,7 +18,7 @@
 #define __NCX_NET_H__
 
 int ncx_connect(const char *serv, unsigned short port);
-int ncx_send_data(int fd, const char *data);
+int ncx_send_data(int fd, const char *data, size_t sz);
 int ncx_read_data(int fd, char *buffer, size_t sz_buffer);
 
 #endif /* __NCX_NET_H__ */

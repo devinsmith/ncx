@@ -130,9 +130,9 @@ int ncx_connect(const char *serv, unsigned short port)
   return sock;
 }
 
-int ncx_send_data(int fd, const char *data)
+int ncx_send_data(int fd, const char *data, size_t sz)
 {
-  return send(fd, data, strlen(data), 0);
+  return send(fd, data, sz, 0);
 }
 
 int ncx_read_data(int fd, char *buffer, size_t szbuffer)

@@ -22,15 +22,12 @@
 #include "ncx_io.h"
 #include "ncx_net.h"
 
-static int clear_line(struct ncx_conn *conn)
+static int clear_line(int chars)
 {
   int i;
 
-  if (conn->dirty == -1)
-    return 0;
-
   printf("\r");
-  for (i = 0; i <= conn->chars; i++) {
+  for (i = 0; i <= chars; i++) {
     putchar(' ');
   }
   printf("\r");
@@ -43,6 +40,16 @@ static void show_prompt(struct ncx_conn *conn)
 {
   printf("> %s", conn->line_buffer);
   fflush(stdout);
+}
+
+static void append_byte(struct ncx_conn *conn, int ch)
+{
+  conn->line_buffer[conn->chars++] = ch;
+  if (conn->chars == sizeof(conn->line_buffer) || ch == '\n') {
+    ncx_send_data(conn->fd, conn->line_buffer, conn->chars);
+    memset(conn->line_buffer, 0, conn->chars);
+    conn->chars = 0;
+  }
 }
 
 static void ncx_getkey(struct ncx_conn *conn)
@@ -58,15 +65,16 @@ static void ncx_getkey(struct ncx_conn *conn)
       fflush(stdout);
     }
   } else if (ch == '\n' || ch == '\r') {
-    conn->line_buffer[conn->chars++] = '\n';
-    conn->line_buffer[conn->chars] = 0;
-    clear_line(conn);
-    ncx_send_data(conn->fd, conn->line_buffer);
-    memset(conn->line_buffer, 0, conn->chars);
-    conn->chars = 0;
-    conn->dirty = 1;
+    conn->dirty = clear_line(conn->chars + 1);
+    append_byte(conn, '\n');
   } else {
-    conn->line_buffer[conn->chars++] = ch;
+    int i = 0;
+    int num_bytes = 0;
+
+    // Technically ch could be the start of a utf8 byte
+    // sequence and we need to make sure we have enough room.
+
+    append_byte(conn, ch);
     putchar(ch);
     fflush(stdout);
   }
@@ -129,7 +137,7 @@ int ncx_io_run(struct ncx_conn *conn)
   }
 
   if (FD_ISSET(conn->fd, &readfds)) {
-    conn->dirty = clear_line(conn);
+    conn->dirty = clear_line(conn->chars);
     ncx_io_read(conn);
   }
 

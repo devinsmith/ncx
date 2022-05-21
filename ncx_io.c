@@ -60,7 +60,7 @@ static void ncx_getkey(struct ncx_conn *conn)
   } else if (ch == '\n' || ch == '\r') {
     conn->line_buffer[conn->chars++] = '\n';
     conn->line_buffer[conn->chars] = 0;
-    printf("\n");
+    clear_line(conn);
     ncx_send_data(conn->fd, conn->line_buffer);
     memset(conn->line_buffer, 0, conn->chars);
     conn->chars = 0;

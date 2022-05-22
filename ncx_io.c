@@ -15,6 +15,7 @@
  */
 
 #include <sys/select.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -54,9 +55,15 @@ static void append_byte(struct ncx_conn *conn, int ch)
 
 static void ncx_getkey(struct ncx_conn *conn)
 {
-  int ch;
+  unsigned char keybuf[512];
+  unsigned char ch;
+  ssize_t bsz;
 
-  ch = getchar();
+  bsz = read(0, keybuf, sizeof(keybuf));
+  if (bsz <= 0) {
+    return;
+  }
+  ch = keybuf[0];
 
   if (ch == '\b' || ch == 127 || ch == 4) {
     if (conn->chars != 0) {
@@ -68,14 +75,12 @@ static void ncx_getkey(struct ncx_conn *conn)
     conn->dirty = clear_line(conn->chars + 1);
     append_byte(conn, '\n');
   } else {
-    int i = 0;
-    int num_bytes = 0;
+    int i;
 
-    // Technically ch could be the start of a utf8 byte
-    // sequence and we need to make sure we have enough room.
-
-    append_byte(conn, ch);
-    putchar(ch);
+    for (i = 0; i < bsz; i++) {
+      append_byte(conn, keybuf[i]);
+      putchar(keybuf[i]);
+    }
     fflush(stdout);
   }
 }

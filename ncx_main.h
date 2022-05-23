@@ -26,6 +26,7 @@ struct ncx_conn {
   int m_buf_idx;
 };
 
+
 void ncx_exit();
 
 #endif /* __NCX_MAIN_H__ */

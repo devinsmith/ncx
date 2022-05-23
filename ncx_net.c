@@ -115,16 +115,16 @@ static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
   return ret;
 }
 
-int ncx_connect(const char *serv, unsigned short port)
+int ncx_connect(struct ncx_opts *opts)
 {
   struct sockaddr_storage ss;
   int sock;
 
-  if (get_addr(serv, &ss) == -1) {
+  if (get_addr(opts->server_name, &ss) == -1) {
     return -1;
   }
 
-  if (sock_connect(&ss, port, &sock) < 0) {
+  if (sock_connect(&ss, opts->port, &sock) < 0) {
     return -1;
   }
   return sock;

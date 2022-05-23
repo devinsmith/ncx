@@ -14,13 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __NCX_NET_H__
-#define __NCX_NET_H__
+#ifndef __NCX_OPTS_H__
+#define __NCX_OPTS_H__
 
-#include "ncx_opts.h"
+struct ncx_opts {
+  int use_ssl;
+  unsigned short port;
+  const char *server_name;
+};
 
-int ncx_connect(struct ncx_opts *opts);
-int ncx_send_data(int fd, const char *data, size_t sz);
-int ncx_read_data(int fd, char *buffer, size_t sz_buffer);
+int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[]);
 
-#endif /* __NCX_NET_H__ */
+#endif /* __NCX_IO_H__ */

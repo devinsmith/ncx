@@ -14,13 +14,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __NCX_NET_H__
-#define __NCX_NET_H__
+#include <string.h>
 
 #include "ncx_opts.h"
 
-int ncx_connect(struct ncx_opts *opts);
-int ncx_send_data(int fd, const char *data, size_t sz);
-int ncx_read_data(int fd, char *buffer, size_t sz_buffer);
+int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[])
+{
+  if (opts == NULL) {
+    return -1;
+  }
 
-#endif /* __NCX_NET_H__ */
+  // defaults
+  opts->use_ssl = 1;
+  opts->port = 6667;
+  opts->server_name = "naken.cc";
+
+  // Quick arg parser...
+  while (--argc) {
+    char *p = *++argv;
+    if (*p == '-') {
+      if (!strcmp(p, "-i") || !strcmp(p, "--no-ssl")) {
+        opts->use_ssl = 0;
+      }
+    }
+  }
+
+  return 0;
+}

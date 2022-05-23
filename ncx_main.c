@@ -21,6 +21,7 @@
 #include "ncx_io.h"
 #include "ncx_main.h"
 #include "ncx_net.h"
+#include "ncx_opts.h"
 
 static struct termios g_term_attr;
 static struct termios g_saved_attr;
@@ -51,13 +52,16 @@ void ncx_exit()
 
 int main(int argc, char *argv[])
 {
-  struct ncx_conn conn = {};
+  struct ncx_conn conn = { 0 };
+  struct ncx_opts opts;
 
   printf("ncx v0.01\n");
 
+  ncx_opts_init(&opts, argc, argv);
+
   setup_tty();
 
-  conn.fd = ncx_connect("naken.cc", 6666);
+  conn.fd = ncx_connect(&opts);
   if (conn.fd == -1) {
     fprintf(stderr, "Couldn't connect.\n");
     ncx_exit();

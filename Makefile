@@ -2,7 +2,7 @@
 
 .PHONY: all clean
 
-C_SRCS = ncx_io.c ncx_main.c ncx_net.c
+C_SRCS = ncx_io.c ncx_main.c ncx_net.c ncx_opts.c
 OBJS = $(C_SRCS:.c=.o)
 DEPS = $(C_SRCS:.c=.d)
 

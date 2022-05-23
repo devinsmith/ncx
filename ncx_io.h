@@ -19,6 +19,6 @@
 
 #include "ncx_main.h"
 
-int ncx_io_run(struct ncx_conn *conn);
+int ncx_io_run(struct ncx_app *app);
 
 #endif /* __NCX_IO_H__ */

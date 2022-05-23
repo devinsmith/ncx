@@ -37,23 +37,23 @@ static int clear_line(int chars)
   return 1;
 }
 
-static void show_prompt(struct ncx_conn *conn)
+static void show_prompt(struct ncx_app *app)
 {
-  printf("> %s", conn->line_buffer);
+  printf("> %s", app->line_buffer);
   fflush(stdout);
 }
 
-static void append_byte(struct ncx_conn *conn, int ch)
+static void append_byte(struct ncx_app *app, int ch)
 {
-  conn->line_buffer[conn->chars++] = ch;
-  if (conn->chars == sizeof(conn->line_buffer) || ch == '\n') {
-    ncx_send_data(conn->fd, conn->line_buffer, conn->chars);
-    memset(conn->line_buffer, 0, conn->chars);
-    conn->chars = 0;
+  app->line_buffer[app->chars++] = ch;
+  if (app->chars == sizeof(app->line_buffer) || ch == '\n') {
+    ncx_send_data(app->fd, app->line_buffer, app->chars);
+    memset(app->line_buffer, 0, app->chars);
+    app->chars = 0;
   }
 }
 
-static void ncx_getkey(struct ncx_conn *conn)
+static void ncx_getkey(struct ncx_app *app)
 {
   unsigned char keybuf[512];
   unsigned char ch;
@@ -66,26 +66,26 @@ static void ncx_getkey(struct ncx_conn *conn)
   ch = keybuf[0];
 
   if (ch == '\b' || ch == 127 || ch == 4) {
-    if (conn->chars != 0) {
+    if (app->chars != 0) {
       printf("\b \b");
-      conn->line_buffer[--conn->chars] = 0;
+      app->line_buffer[--app->chars] = 0;
       fflush(stdout);
     }
   } else if (ch == '\n' || ch == '\r') {
-    conn->dirty = clear_line(conn->chars + 1);
-    append_byte(conn, '\n');
+    app->dirty = clear_line(app->chars + 1);
+    append_byte(app, '\n');
   } else {
     int i;
 
     for (i = 0; i < bsz; i++) {
-      append_byte(conn, keybuf[i]);
+      append_byte(app, keybuf[i]);
       putchar(keybuf[i]);
     }
     fflush(stdout);
   }
 }
 
-static void process_data(struct ncx_conn *conn, char *buffer, ssize_t nbytes)
+static void process_data(struct ncx_app *app, char *buffer, ssize_t nbytes)
 {
   int i;
 
@@ -98,32 +98,32 @@ static void process_data(struct ncx_conn *conn, char *buffer, ssize_t nbytes)
 
     if (buffer[i] == '\n') {
       /* Display message to user */
-      conn->m_buffer[conn->m_buf_idx] = '\0';
-      printf("%s\n", conn->m_buffer);
-      conn->dirty = 1;
+      app->m_buffer[app->m_buf_idx] = '\0';
+      printf("%s\n", app->m_buffer);
+      app->dirty = 1;
 
       /* clear out our input buffer */
-      conn->m_buf_idx = 0;
+      app->m_buf_idx = 0;
     } else {
-      conn->m_buffer[conn->m_buf_idx++] = buffer[i];
+      app->m_buffer[app->m_buf_idx++] = buffer[i];
     }
   }
 }
 
-static void ncx_io_read(struct ncx_conn *conn)
+static void ncx_io_read(struct ncx_app *app)
 {
   char buffer[2048];
-  int bytes = ncx_read_data(conn->fd, buffer, sizeof(buffer));
+  int bytes = ncx_read_data(app->fd, buffer, sizeof(buffer));
 
   if (bytes <= 0) {
     fprintf(stderr, "socket closed\n");
     ncx_exit();
   }
 
-  process_data(conn, buffer, bytes);
+  process_data(app, buffer, bytes);
 }
 
-int ncx_io_run(struct ncx_conn *conn)
+int ncx_io_run(struct ncx_app *app)
 {
   struct timeval tv;
   fd_set readfds;
@@ -131,28 +131,28 @@ int ncx_io_run(struct ncx_conn *conn)
   FD_ZERO(&readfds);
   // Add stdin
   FD_SET(0, &readfds);
-  FD_SET(conn->fd, &readfds);
+  FD_SET(app->fd, &readfds);
 
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  if (select(conn->fd + 1, &readfds, NULL, NULL, &tv) == -1) {
+  if (select(app->fd + 1, &readfds, NULL, NULL, &tv) == -1) {
     // error
     fprintf(stderr, "select error\n");
     ncx_exit();
   }
 
-  if (FD_ISSET(conn->fd, &readfds)) {
-    conn->dirty = clear_line(conn->chars);
-    ncx_io_read(conn);
+  if (FD_ISSET(app->fd, &readfds)) {
+    app->dirty = clear_line(app->chars);
+    ncx_io_read(app);
   }
 
   if (FD_ISSET(0, &readfds)) {
-    ncx_getkey(conn);
+    ncx_getkey(app);
   }
 
-  if (conn->dirty == 1) {
-    show_prompt(conn);
-    conn->dirty = 0;
+  if (app->dirty == 1) {
+    show_prompt(app);
+    app->dirty = 0;
   }
   return 0;
 }

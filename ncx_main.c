@@ -52,7 +52,7 @@ void ncx_exit()
 
 int main(int argc, char *argv[])
 {
-  struct ncx_conn conn = { 0 };
+  struct ncx_app app = { 0 };
   struct ncx_opts opts;
 
   printf("ncx v0.01\n");
@@ -61,14 +61,14 @@ int main(int argc, char *argv[])
 
   setup_tty();
 
-  conn.fd = ncx_connect(&opts);
-  if (conn.fd == -1) {
+  app.fd = ncx_connect(&opts);
+  if (app.fd == -1) {
     fprintf(stderr, "Couldn't connect.\n");
     ncx_exit();
   }
 
-  for (;;) {
-    ncx_io_run(&conn);
+  while (1) {
+    ncx_io_run(&app);
   }
   return 0;
 }

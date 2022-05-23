@@ -17,12 +17,16 @@
 #ifndef __NCX_MAIN_H__
 #define __NCX_MAIN_H__
 
-struct ncx_conn {
+struct ncx_app {
   int fd;
   int dirty;
+
+  // Input buffer
   int chars;
   char line_buffer[256];
   char m_buffer[1024];
+
+  // Output buffer
   int m_buf_idx;
 };
 

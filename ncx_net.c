@@ -129,55 +129,20 @@ static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
 // Work in progress
 static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
-  //char line[1024];
-  char    buf[256];
-  X509   *err_cert;
-  EVP_PKEY *pub_key;
-  int     err, depth;
-  SSL    *ssl;
-  BIO *bio;
-  struct tm t;
   struct verify_ctx *vctx;
 
-  err_cert = X509_STORE_CTX_get_current_cert(ctx);
-#if 0
-  pub_key = X509_get_pubkey(err_cert);
-
-  bio = BIO_new(BIO_s_mem());
-  PEM_write_bio_PUBKEY(bio, pub_key);
-
-  while (1) {
-    char line[1024];
-    int l = BIO_read(bio, line, sizeof(line));
-    if (l <= 0)
-      break;
-    printf("%s\n", line);
-  }
-//  X509_print_ex(bio, err_cert, 0, 0);
-
-//  BIO_read(bio, line, sizeof(line) - 1);
-//  line[sizeof(line) - 1] = '\0';
-
-//  printf("%s\n", line);
-
-
-  BIO_free(bio);
-#endif
-
-  err = X509_STORE_CTX_get_error(ctx);
-  depth = X509_STORE_CTX_get_error_depth(ctx);
+  X509 *err_cert = X509_STORE_CTX_get_current_cert(ctx);
+  int err = X509_STORE_CTX_get_error(ctx);
+  int depth = X509_STORE_CTX_get_error_depth(ctx);
 
   /*
    * Retrieve the pointer to the SSL of the connection currently treated
    * and the application specific data stored into the SSL object.
    */
-  ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+  SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
   vctx = SSL_get_ex_data(ssl, ssl_verify_idx);
 
-  X509_NAME *subj_name = X509_get_subject_name(err_cert);
-
-
-  X509_NAME_oneline(X509_get_subject_name(err_cert), buf, 256);
+  struct tm t;
   ASN1_TIME_to_tm(X509_get_notAfter(err_cert), &t);
 
   /*
@@ -196,27 +161,41 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
   }
 
   if (!preverify_ok) {
+    // We failed verification, so extract some information to indicate the problem
+    printf("===================================\n");
     printf("SSL certificate verification failed\n");
     printf("Error: %d (%s)\n", err, X509_verify_cert_error_string(err));
     printf("Depth: %d\n", depth);
-    printf("Subject: %s\n", buf);
-    printf("Expiration: %s\n", asctime(&t));
 
+    // Dump subject and issuer.
+    BIO *bio = BIO_new(BIO_s_mem());
+    BIO_printf(bio, "Subject: ");
+    X509_NAME_print(bio, X509_get_subject_name(err_cert), 0);
+    BIO_printf(bio, "\n");
+    BIO_printf(bio, "Issuer: ");
+    X509_NAME_print(bio, X509_get_issuer_name(err_cert), 0);
+
+    while (1) {
+      char line[1024];
+      int l = BIO_read(bio, line, sizeof(line));
+      if (l <= 0)
+        break;
+      line[l] = '\0';
+      printf("%s\n", line);
+    }
+
+    BIO_free(bio);
+
+    printf("Expiration: %04d-%02d-%02d %02d:%02d:%02d\n",
+        t.tm_year + 1900, t.tm_mon + 1,
+        t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+
+    printf("===================================\n");
     PEM_write_X509(stdout, err_cert);
   }
 
-   /*
-    * At this point, err contains the last verification error. We can use
-    * it for something special
-    */
-   if (!preverify_ok && (err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT)) {
-     X509_NAME_oneline(X509_get_issuer_name(err_cert), buf, 256);
-     printf("issuer= %s\n", buf);
-   }
-
-   printf("%d\n", preverify_ok);
-   vctx->was_error = preverify_ok == 0;
-   return preverify_ok;
+  vctx->was_error = preverify_ok == 0;
+  return preverify_ok;
 }
 
 static int ncx_ssl_connect(struct ncx_conn *conn)

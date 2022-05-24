@@ -25,4 +25,4 @@ struct ncx_opts {
 
 int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[]);
 
-#endif /* __NCX_IO_H__ */
+#endif /* __NCX_OPTS_H__ */

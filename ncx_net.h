@@ -19,8 +19,12 @@
 
 #include "ncx_opts.h"
 
-int ncx_connect(struct ncx_opts *opts);
-int ncx_send_data(int fd, const char *data, size_t sz);
-int ncx_read_data(int fd, char *buffer, size_t sz_buffer);
+void ncx_net_init();
+
+struct ncx_conn *ncx_connect(struct ncx_opts *opts);
+void ncx_disconnect(struct ncx_conn *conn);
+int ncx_net_getfd(struct ncx_conn *conn);
+int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);
+int ncx_read_data(struct ncx_conn *conn, char *buffer, size_t sz_buffer);
 
 #endif /* __NCX_NET_H__ */

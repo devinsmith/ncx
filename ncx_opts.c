@@ -27,7 +27,7 @@ int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[])
   // defaults
   opts->use_ssl = 1;
   opts->port = 6667;
-  opts->server_name = "naken.cc";
+  opts->server_name = "mikekohn.net";
 
   // Quick arg parser...
   while (--argc) {
@@ -35,6 +35,7 @@ int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[])
     if (*p == '-') {
       if (!strcmp(p, "-i") || !strcmp(p, "--no-ssl")) {
         opts->use_ssl = 0;
+        opts->port = 6666;
       }
     }
   }

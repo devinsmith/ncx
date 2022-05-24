@@ -44,8 +44,12 @@ static void setup_tty()
   }
 }
 
-void ncx_exit()
+void ncx_exit(struct ncx_app *app)
 {
+  if (app->conn != NULL) {
+    ncx_disconnect(app->conn);
+  }
+
   tcsetattr(fileno(stdin), TCSAFLUSH, &g_saved_attr);
   exit(0);
 }
@@ -58,13 +62,14 @@ int main(int argc, char *argv[])
   printf("ncx v0.01\n");
 
   ncx_opts_init(&opts, argc, argv);
+  ncx_net_init();
 
   setup_tty();
 
-  app.fd = ncx_connect(&opts);
-  if (app.fd == -1) {
-    fprintf(stderr, "Couldn't connect.\n");
-    ncx_exit();
+  app.conn = ncx_connect(&opts);
+  if (app.conn == NULL) {
+//    fprintf(stderr, "Couldn't connect.\n");
+    ncx_exit(&app);
   }
 
   while (1) {

@@ -15,7 +15,7 @@ EXE = ncx
 all: $(EXE)
 
 $(EXE): $(OBJS)
-	$(CC) $(CFLAGS) -o $(EXE) $(OBJS)
+	$(CC) $(CFLAGS) -o $(EXE) $(OBJS) -lcrypto -lssl
 
 .c.o:
 	$(CC) $(CFLAGS) -MMD -MP -MT $@ -o $@ -c $<

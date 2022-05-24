@@ -17,8 +17,10 @@
 #ifndef __NCX_MAIN_H__
 #define __NCX_MAIN_H__
 
+struct ncx_conn;
+
 struct ncx_app {
-  int fd;
+  struct ncx_conn *conn;
   int dirty;
 
   // Input buffer
@@ -31,6 +33,6 @@ struct ncx_app {
 };
 
 
-void ncx_exit();
+void ncx_exit(struct ncx_app *app);
 
 #endif /* __NCX_MAIN_H__ */

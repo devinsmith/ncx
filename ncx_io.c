@@ -47,7 +47,7 @@ static void append_byte(struct ncx_app *app, int ch)
 {
   app->line_buffer[app->chars++] = ch;
   if (app->chars == sizeof(app->line_buffer) || ch == '\n') {
-    ncx_send_data(app->fd, app->line_buffer, app->chars);
+    ncx_send_data(app->conn, app->line_buffer, app->chars);
     memset(app->line_buffer, 0, app->chars);
     app->chars = 0;
   }
@@ -113,11 +113,11 @@ static void process_data(struct ncx_app *app, char *buffer, ssize_t nbytes)
 static void ncx_io_read(struct ncx_app *app)
 {
   char buffer[2048];
-  int bytes = ncx_read_data(app->fd, buffer, sizeof(buffer));
+  int bytes = ncx_read_data(app->conn, buffer, sizeof(buffer));
 
   if (bytes <= 0) {
     fprintf(stderr, "socket closed\n");
-    ncx_exit();
+    ncx_exit(app);
   }
 
   process_data(app, buffer, bytes);
@@ -127,21 +127,24 @@ int ncx_io_run(struct ncx_app *app)
 {
   struct timeval tv;
   fd_set readfds;
+  int conn_fd;
+
+  conn_fd = ncx_net_getfd(app->conn);
 
   FD_ZERO(&readfds);
   // Add stdin
-  FD_SET(0, &readfds);
-  FD_SET(app->fd, &readfds);
+  FD_SET(fileno(stdin), &readfds);
+  FD_SET(conn_fd, &readfds);
 
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  if (select(app->fd + 1, &readfds, NULL, NULL, &tv) == -1) {
+  if (select(conn_fd + 1, &readfds, NULL, NULL, &tv) == -1) {
     // error
     fprintf(stderr, "select error\n");
-    ncx_exit();
+    ncx_exit(app);
   }
 
-  if (FD_ISSET(app->fd, &readfds)) {
+  if (FD_ISSET(conn_fd, &readfds)) {
     app->dirty = clear_line(app->chars);
     ncx_io_read(app);
   }

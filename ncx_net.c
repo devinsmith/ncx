@@ -174,6 +174,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     BIO_printf(bio, "\n");
     BIO_printf(bio, "Issuer: ");
     X509_NAME_print(bio, X509_get_issuer_name(err_cert), 0);
+    BIO_printf(bio, "\n");
 
     while (1) {
       char line[1024];
@@ -191,7 +192,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
         t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
 
     printf("===================================\n");
-    PEM_write_X509(stdout, err_cert);
+    //PEM_write_X509(stdout, err_cert);
   }
 
   vctx->was_error = preverify_ok == 0;
@@ -267,11 +268,14 @@ struct ncx_conn *ncx_connect(struct ncx_opts *opts)
   conn = calloc(1, sizeof(struct ncx_conn));
   conn->fd = sock;
   if (opts->use_ssl) {
-    if (ncx_ssl_connect(conn) == -1) {
+    int ssl_conn = ncx_ssl_connect(conn);
+    if (ssl_conn == -1) {
       fprintf(stderr, "Failed to connect to %s:%d\n", opts->server_name,
           opts->port);
       free(conn);
       return NULL;
+    } else if (ssl_conn == -2) {
+
     }
   }
 

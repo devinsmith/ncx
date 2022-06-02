@@ -19,6 +19,14 @@
 
 #include "ncx_main.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int ncx_io_run(struct ncx_app *app);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __NCX_IO_H__ */

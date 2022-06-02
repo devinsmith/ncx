@@ -17,6 +17,10 @@
 #ifndef __NCX_OPTS_H__
 #define __NCX_OPTS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ncx_opts {
   int use_ssl;
   unsigned short port;
@@ -24,5 +28,9 @@ struct ncx_opts {
 };
 
 int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __NCX_OPTS_H__ */

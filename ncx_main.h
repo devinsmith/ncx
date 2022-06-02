@@ -17,6 +17,10 @@
 #ifndef __NCX_MAIN_H__
 #define __NCX_MAIN_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ncx_conn;
 
 struct ncx_app {
@@ -34,5 +38,9 @@ struct ncx_app {
 
 
 void ncx_exit(struct ncx_app *app);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __NCX_MAIN_H__ */

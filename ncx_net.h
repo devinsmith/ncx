@@ -19,6 +19,10 @@
 
 #include "ncx_opts.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void ncx_net_init();
 
 struct ncx_conn *ncx_connect(struct ncx_opts *opts);
@@ -26,5 +30,9 @@ void ncx_disconnect(struct ncx_conn *conn);
 int ncx_net_getfd(struct ncx_conn *conn);
 int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);
 int ncx_read_data(struct ncx_conn *conn, char *buffer, size_t sz_buffer);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __NCX_NET_H__ */

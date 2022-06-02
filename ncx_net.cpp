@@ -35,7 +35,7 @@ struct ncx_conn {
 };
 
 struct verify_ctx {
-  int was_error;
+  bool was_error;
   char *pem;
 };
 static int ssl_verify_idx;
@@ -126,6 +126,27 @@ static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
   return ret;
 }
 
+static std::string calc_fingerprint(X509 *cert)
+{
+  unsigned char md[EVP_MAX_MD_SIZE];
+  char hash[EVP_MAX_MD_SIZE * 2 + 1];
+  unsigned int md_len = (unsigned int)sizeof(md);
+
+  memset(md, 0, sizeof(md));
+  hash[0] = '\0';
+
+  int success = X509_digest(cert, EVP_sha256(), md, &md_len);
+  if (success) {
+    unsigned int j;
+    for (j = 0; j < md_len && j * 2 + 1 < sizeof(hash); ++j) {
+      hash[j * 2] = "0123456789abcdef"[md[j] >> 4];
+      hash[j * 2 + 1] = "0123456789abcdef"[md[j]&0xf];
+    }
+  }
+
+  return hash;
+}
+
 // Work in progress
 static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
@@ -141,7 +162,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
    */
   SSL *ssl = (SSL *)X509_STORE_CTX_get_ex_data(ctx,
       SSL_get_ex_data_X509_STORE_CTX_idx());
-  vctx = (verify_ctx *)SSL_get_ex_data(ssl, ssl_verify_idx);
+  vctx = static_cast<verify_ctx *>(SSL_get_ex_data(ssl, ssl_verify_idx));
 
   struct tm t;
   ASN1_TIME_to_tm(X509_get_notAfter(err_cert), &t);
@@ -167,6 +188,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     printf("SSL certificate verification failed\n");
     printf("Error: %d (%s)\n", err, X509_verify_cert_error_string(err));
     printf("Depth: %d\n", depth);
+    printf("Fingerprint: %s\n", calc_fingerprint(err_cert).c_str());
 
     // Dump subject and issuer.
     BIO *bio = BIO_new(BIO_s_mem());

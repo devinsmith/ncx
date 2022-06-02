@@ -92,7 +92,7 @@ void ncx_opts::read_certs()
     line_num++;
     p = strchr(line, '\n');
     if (!p) {
-      fprintf(stderr, "%s: Line %d is too long. Skipping.\n", cert_file,
+      fprintf(stderr, "%s: Line %d is too long. Skipping.\n", cert_file.c_str(),
           line_num);
       continue;
     }
@@ -101,8 +101,8 @@ void ncx_opts::read_certs()
 
     char *sp = strchr(line, ':');
     if (!sp) {
-      fprintf(stderr, "%s: Line %d is malformed. Skipping.\n", cert_file,
-          line_num);
+      fprintf(stderr, "%s: Line %d is malformed. Skipping.\n",
+          cert_file.c_str(), line_num);
       continue;
     }
     *sp = '\0';

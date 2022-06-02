@@ -19,20 +19,20 @@
 
 #include <string>
 
-struct ncx_opts {
-
-  ncx_opts();
+class Options {
+public:
+  Options();
 
   int parse(int argc, char *argv[]);
+
+  const std::string& conf_dir() const { return _conf_dir; }
 
   bool m_use_ssl;
   unsigned short m_port;
   std::string m_server_name;
 
 private:
-  void read_certs();
-
-  std::string m_conf_dir;
+  std::string _conf_dir;
 };
 
 #endif /* NCX_OPTS_H */

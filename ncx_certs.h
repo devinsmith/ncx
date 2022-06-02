@@ -14,25 +14,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __NCX_NET_H__
-#define __NCX_NET_H__
+#ifndef NCX_CERTS_H
+#define NCX_CERTS_H
 
-#include "ncx_opts.h"
+#include <string>
+#include <vector>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class Options;
 
-void ncx_net_init();
+struct Cert {
+  Cert(const char *hn, const char *fp) : hostname(hn), fingerprint(fp) {}
+  std::string hostname;
+  std::string fingerprint;
+};
 
-struct ncx_conn *ncx_connect(const Options *opts);
-void ncx_disconnect(struct ncx_conn *conn);
-int ncx_net_getfd(struct ncx_conn *conn);
-int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);
-int ncx_read_data(struct ncx_conn *conn, char *buffer, size_t sz_buffer);
+class CertManager {
+public:
+  CertManager(const Options& opts);
 
-#ifdef __cplusplus
-}
-#endif
+private:
+  void read_certs();
+  void append_cert(const char *hostname, const char *fingerprint);
 
-#endif /* __NCX_NET_H__ */
+  std::string _cert_file;
+  std::vector<Cert> _cert_list;
+};
+
+#endif /* NCX_CERTS_H */

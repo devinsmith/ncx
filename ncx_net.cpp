@@ -248,7 +248,7 @@ static int ncx_ssl_connect(struct ncx_conn *conn)
   return 0;
 }
 
-struct ncx_conn *ncx_connect(struct ncx_opts *opts)
+struct ncx_conn *ncx_connect(const Options *opts)
 {
   struct sockaddr_storage ss;
   int sock;

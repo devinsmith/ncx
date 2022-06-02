@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "ncx_certs.h"
 #include "ncx_io.h"
 #include "ncx_main.h"
 #include "ncx_net.h"
@@ -57,7 +58,7 @@ void ncx_exit(struct ncx_app *app)
 int main(int argc, char *argv[])
 {
   struct ncx_app app = { 0 };
-  ncx_opts opts;
+  Options opts;
 
   printf("ncx v0.01\n");
 
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
 
   setup_tty();
 
+  CertManager certmgr(opts);
   app.conn = ncx_connect(&opts);
   if (app.conn == NULL) {
 //    fprintf(stderr, "Couldn't connect.\n");

@@ -26,16 +26,6 @@
 
 #include "ncx_opts.h"
 
-struct cert {
-  char *host;
-  char *fingerprint;
-};
-
-struct cert_list {
-  size_t n;
-  struct cert *certs;
-} g_cert_list;
-
 static int ncx_mkdir(const char *path)
 {
   struct stat st;
@@ -54,70 +44,12 @@ static int ncx_mkdir(const char *path)
   return 0;
 }
 
-static void append_cert(const char *host, const char *fingerprint)
-{
-  struct cert *resize;
-  struct cert *cert;
-
-  g_cert_list.n++;
-  if ((resize = (struct cert *)realloc(g_cert_list.certs,
-       sizeof(struct cert) * g_cert_list.n)) == NULL) {
-    fprintf(stderr, "Failed to allocate room for certificate\n");
-    exit(1);
-  }
-  g_cert_list.certs = resize;
-
-  cert = &g_cert_list.certs[g_cert_list.n - 1];
-  cert->host = strdup(host);
-  cert->fingerprint = strdup(fingerprint);
-}
-
-void ncx_opts::read_certs()
-{
-  FILE *certfp;
-  char line[4096];
-  int line_num = 0;
-
-  std::string cert_file = m_conf_dir;
-  cert_file += "/certs";
-
-  certfp = fopen(cert_file.c_str(), "r");
-  if (certfp == NULL) {
-    return;
-  }
-
-  while (fgets(line, sizeof(line), certfp)) {
-    char *p;
-
-    line_num++;
-    p = strchr(line, '\n');
-    if (!p) {
-      fprintf(stderr, "%s: Line %d is too long. Skipping.\n", cert_file.c_str(),
-          line_num);
-      continue;
-    }
-
-    *p = '\0';
-
-    char *sp = strchr(line, ':');
-    if (!sp) {
-      fprintf(stderr, "%s: Line %d is malformed. Skipping.\n",
-          cert_file.c_str(), line_num);
-      continue;
-    }
-    *sp = '\0';
-    append_cert(line, sp + 1);
-  }
-
-  fclose(certfp);
-}
-
-ncx_opts::ncx_opts()
+Options::Options()
   : m_use_ssl(true), m_port(6667), m_server_name("mikekohn.net")
 {
 }
 
-int ncx_opts::parse(int argc, char *argv[])
+int Options::parse(int argc, char *argv[])
 {
   struct passwd *pw = getpwuid(getuid());
   if (pw == nullptr) {
@@ -130,10 +62,6 @@ int ncx_opts::parse(int argc, char *argv[])
   if (ncx_mkdir(g_config_dir.c_str()) != 0) {
     return -1;
   }
-
-  g_cert_list.n = 0;
-  g_cert_list.certs = NULL;
-  read_certs();
 
   // Quick arg parser...
   while (--argc) {

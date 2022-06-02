@@ -139,8 +139,9 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
    * Retrieve the pointer to the SSL of the connection currently treated
    * and the application specific data stored into the SSL object.
    */
-  SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-  vctx = SSL_get_ex_data(ssl, ssl_verify_idx);
+  SSL *ssl = (SSL *)X509_STORE_CTX_get_ex_data(ctx,
+      SSL_get_ex_data_X509_STORE_CTX_idx());
+  vctx = (verify_ctx *)SSL_get_ex_data(ssl, ssl_verify_idx);
 
   struct tm t;
   ASN1_TIME_to_tm(X509_get_notAfter(err_cert), &t);
@@ -228,7 +229,7 @@ static int ncx_ssl_connect(struct ncx_conn *conn)
     return -1;
   }
 
-  ssl_verify_idx = SSL_get_ex_new_index(0, "verify context", NULL, NULL, NULL);
+  ssl_verify_idx = SSL_get_ex_new_index(0, (void *)"verify context", NULL, NULL, NULL);
   SSL_set_ex_data(conn->ssl, ssl_verify_idx, &verify_ctx);
 
   if (!SSL_set_fd(conn->ssl, conn->fd)) {
@@ -265,7 +266,7 @@ struct ncx_conn *ncx_connect(struct ncx_opts *opts)
     return NULL;
   }
 
-  conn = calloc(1, sizeof(struct ncx_conn));
+  conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
   conn->fd = sock;
   if (opts->use_ssl) {
     int ssl_conn = ncx_ssl_connect(conn);

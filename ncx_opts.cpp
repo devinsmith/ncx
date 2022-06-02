@@ -62,7 +62,7 @@ static void append_cert(const char *host, const char *fingerprint)
   struct cert *cert;
 
   g_cert_list.n++;
-  if ((resize = realloc(g_cert_list.certs,
+  if ((resize = (struct cert *)realloc(g_cert_list.certs,
        sizeof(struct cert) * g_cert_list.n)) == NULL) {
     fprintf(stderr, "Failed to allocate room for certificate\n");
     exit(1);

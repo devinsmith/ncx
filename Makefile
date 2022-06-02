@@ -2,11 +2,12 @@
 
 .PHONY: all clean
 
-C_SRCS = ncx_io.c ncx_main.c ncx_net.c ncx_opts.c
-OBJS = $(C_SRCS:.c=.o)
-DEPS = $(C_SRCS:.c=.d)
+CXX_SRCS = ncx_main.cpp ncx_io.cpp ncx_net.cpp ncx_opts.cpp
+OBJS = $(CXX_SRCS:.cpp=.o)
+DEPS = $(CXX_SRCS:.cpp=.d)
 
 CC? = gcc
+CXX? = g++
 
 CFLAGS = -Wall -O2
 
@@ -15,10 +16,13 @@ EXE = ncx
 all: $(EXE)
 
 $(EXE): $(OBJS)
-	$(CC) $(CFLAGS) -o $(EXE) $(OBJS) -lcrypto -lssl
+	$(CXX) $(CFLAGS) -o $(EXE) $(OBJS) -lcrypto -lssl
 
 .c.o:
 	$(CC) $(CFLAGS) -MMD -MP -MT $@ -o $@ -c $<
+
+.cpp.o:
+	$(CXX) $(CFLAGS) -MMD -MP -MT $@ -o $@ -c $<
 
 clean:
 	rm -f $(OBJS) $(EXE) $(DEPS)

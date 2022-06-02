@@ -254,25 +254,25 @@ struct ncx_conn *ncx_connect(struct ncx_opts *opts)
   int sock;
   struct ncx_conn *conn;
 
-  printf("Connecting to %s:%d...\n", opts->server_name, opts->port);
+  printf("Connecting to %s:%d...\n", opts->m_server_name.c_str(), opts->m_port);
 
-  if (get_addr(opts->server_name, &ss) == -1) {
+  if (get_addr(opts->m_server_name.c_str(), &ss) == -1) {
     return NULL;
   }
 
-  if (sock_connect(&ss, opts->port, &sock) < 0) {
-    fprintf(stderr, "Failed to connect to %s:%d\n", opts->server_name,
-        opts->port);
+  if (sock_connect(&ss, opts->m_port, &sock) < 0) {
+    fprintf(stderr, "Failed to connect to %s:%d\n", opts->m_server_name.c_str(),
+        opts->m_port);
     return NULL;
   }
 
   conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
   conn->fd = sock;
-  if (opts->use_ssl) {
+  if (opts->m_use_ssl) {
     int ssl_conn = ncx_ssl_connect(conn);
     if (ssl_conn == -1) {
-      fprintf(stderr, "Failed to connect to %s:%d\n", opts->server_name,
-          opts->port);
+      fprintf(stderr, "Failed to connect to %s:%d\n", opts->m_server_name.c_str(),
+          opts->m_port);
       free(conn);
       return NULL;
     } else if (ssl_conn == -2) {

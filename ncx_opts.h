@@ -14,23 +14,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __NCX_OPTS_H__
-#define __NCX_OPTS_H__
+#ifndef NCX_OPTS_H
+#define NCX_OPTS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <string>
 
 struct ncx_opts {
-  int use_ssl;
-  unsigned short port;
-  const char *server_name;
+
+  ncx_opts();
+
+  int parse(int argc, char *argv[]);
+
+  bool m_use_ssl;
+  unsigned short m_port;
+  std::string m_server_name;
+
+private:
+  void read_certs();
+
+  std::string m_conf_dir;
 };
 
-int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[]);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __NCX_OPTS_H__ */
+#endif /* NCX_OPTS_H */

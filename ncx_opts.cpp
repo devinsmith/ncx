@@ -26,8 +26,6 @@
 
 #include "ncx_opts.h"
 
-static char g_config_dir[PATH_MAX];
-
 struct cert {
   char *host;
   char *fingerprint;
@@ -74,16 +72,16 @@ static void append_cert(const char *host, const char *fingerprint)
   cert->fingerprint = strdup(fingerprint);
 }
 
-static void read_certs()
+void ncx_opts::read_certs()
 {
   FILE *certfp;
-  char cert_file[sizeof(g_config_dir) + 8];
   char line[4096];
   int line_num = 0;
 
-  snprintf(cert_file, sizeof(cert_file), "%s/certs", g_config_dir);
+  std::string cert_file = m_conf_dir;
+  cert_file += "/certs";
 
-  certfp = fopen(cert_file, "r");
+  certfp = fopen(cert_file.c_str(), "r");
   if (certfp == NULL) {
     return;
   }
@@ -114,18 +112,22 @@ static void read_certs()
   fclose(certfp);
 }
 
-int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[])
+ncx_opts::ncx_opts()
+  : m_use_ssl(true), m_port(6667), m_server_name("mikekohn.net")
 {
-  struct passwd *pw;
+}
 
-  pw = getpwuid(getuid());
-  if (pw == NULL) {
+int ncx_opts::parse(int argc, char *argv[])
+{
+  struct passwd *pw = getpwuid(getuid());
+  if (pw == nullptr) {
     fprintf(stderr, "Fatal: Can't get your user info.\n");
     return -1;
   }
 
-  snprintf(g_config_dir, sizeof(g_config_dir), "%s/.ncx", pw->pw_dir);
-  if (ncx_mkdir(g_config_dir) != 0) {
+  std::string g_config_dir = pw->pw_dir;
+  g_config_dir += "/.ncx";
+  if (ncx_mkdir(g_config_dir.c_str()) != 0) {
     return -1;
   }
 
@@ -133,22 +135,13 @@ int ncx_opts_init(struct ncx_opts *opts, int argc, char *argv[])
   g_cert_list.certs = NULL;
   read_certs();
 
-  if (opts == NULL) {
-    return -1;
-  }
-
-  // defaults
-  opts->use_ssl = 1;
-  opts->port = 6667;
-  opts->server_name = "mikekohn.net";
-
   // Quick arg parser...
   while (--argc) {
     char *p = *++argv;
     if (*p == '-') {
       if (!strcmp(p, "-i") || !strcmp(p, "--no-ssl")) {
-        opts->use_ssl = 0;
-        opts->port = 6666;
+        m_use_ssl = false;
+        m_port = 6666;
       }
     }
   }

@@ -57,11 +57,11 @@ void ncx_exit(struct ncx_app *app)
 int main(int argc, char *argv[])
 {
   struct ncx_app app = { 0 };
-  struct ncx_opts opts;
+  ncx_opts opts;
 
   printf("ncx v0.01\n");
 
-  ncx_opts_init(&opts, argc, argv);
+  opts.parse(argc, argv);
   ncx_net_init();
 
   setup_tty();

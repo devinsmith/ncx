@@ -245,6 +245,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
 static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
 {
+  if (conn->ssl_ctx == nullptr) {
   conn->ssl_ctx = SSL_CTX_new(TLS_client_method());
   if (conn->ssl_ctx == nullptr) {
     ERR_print_errors_fp(stderr);
@@ -268,13 +269,22 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
     ERR_print_errors_fp(stderr);
     return -1;
   }
+  }
 
-  if (SSL_connect(conn->ssl) == -1) {
+  int ret;
+  if ((ret = SSL_connect(conn->ssl)) == -1) {
+    int ssl_err = SSL_get_error(conn->ssl, ret);
+    if (ssl_err == SSL_ERROR_SYSCALL) {
+      printf("%d %d\n", ssl_err, errno);
+    }
+    ERR_print_errors_fp(stderr);
+#if 0
     SSL_shutdown(conn->ssl);
     SSL_free(conn->ssl);
     SSL_CTX_free(conn->ssl_ctx);
     conn->ssl = nullptr;
     conn->ssl_ctx = nullptr;
+#endif
     return -1;
   }
 
@@ -288,24 +298,23 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
   struct ncx_conn *conn;
 
   printf("Connecting to %s:%d...\n", opts->m_server_name.c_str(), opts->m_port);
-
   if (get_addr(opts->m_server_name.c_str(), &ss) == -1) {
-    return NULL;
+    return nullptr;
   }
 
-  if (sock_connect(&ss, opts->m_port, &sock) < 0) {
-    fprintf(stderr, "Failed to connect to %s:%d\n", opts->m_server_name.c_str(),
-        opts->m_port);
-    return NULL;
-  }
+  bool connected = false;
+  while (!connected) {
+    if (sock_connect(&ss, opts->m_port, &sock) < 0) {
+      fprintf(stderr, "Failed to connect to %s:%d\n",
+          opts->m_server_name.c_str(), opts->m_port);
+      return nullptr;
+    }
 
-  conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
-  conn->fd = sock;
-  if (opts->m_use_ssl) {
-    printf("SSL negotionation with %s\n", opts->m_server_name.c_str());
+    conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
+    conn->fd = sock;
+    if (opts->m_use_ssl) {
+      printf("SSL negotionation with %s\n", opts->m_server_name.c_str());
 
-    bool connected = false;
-    while (!connected) {
       struct verify_ctx verify_ctx = {};
       int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
       if (ssl_conn == -1) {
@@ -313,7 +322,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
           printf("Failed to connect due to verification errors\n");
           char ch;
           do {
-            printf("You can choose trust this server:\n"
+            printf("You can choose to trust this server:\n"
                 "(O)nce\n"
                 "(A)lways\n"
                 "(N)ever (will disconnect)\n"
@@ -344,9 +353,13 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
           fprintf(stderr, "Failed to connect to %s:%d\n",
               opts->m_server_name.c_str(), opts->m_port);
           ncx_disconnect(conn);
-          return NULL;
+          return nullptr;
         }
+      } else {
+        connected = true;
       }
+    } else {
+      connected = true;
     }
   }
 

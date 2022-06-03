@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
   struct ncx_app app = { 0 };
   Options opts;
 
-  printf("ncx v0.01\n");
+  printf("ncx v0.02\n");
 
   opts.parse(argc, argv);
   ncx_net_init();

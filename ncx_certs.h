@@ -23,7 +23,8 @@
 class Options;
 
 struct Cert {
-  Cert(const char *hn, const char *fp) : hostname(hn), fingerprint(fp) {}
+  Cert(const std::string& hn, const std::string& fp) :
+    hostname(hn), fingerprint(fp) {}
   std::string hostname;
   std::string fingerprint;
 };
@@ -32,6 +33,9 @@ class CertManager {
 public:
   CertManager(const Options& opts);
 
+  bool is_whitelisted(const std::string& host, const std::string& fp) const;
+  void whitelist_cert(const std::string& host, const std::string& fp,
+      bool store);
 private:
   void read_certs();
   void append_cert(const char *hostname, const char *fingerprint);

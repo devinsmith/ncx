@@ -35,10 +35,14 @@ struct ncx_conn {
 };
 
 struct verify_ctx {
+  verify_ctx(const CertManager& cm) : was_error(false), certmgr(cm) {}
+
   bool was_error;
+  std::string host;
   std::string fingerprint;
   std::string error;
   std::string cert;
+  const CertManager& certmgr;
 };
 static int ssl_verify_idx;
 
@@ -166,6 +170,12 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
       SSL_get_ex_data_X509_STORE_CTX_idx());
   vctx = static_cast<verify_ctx *>(SSL_get_ex_data(ssl, ssl_verify_idx));
 
+  std::string fingerprint = calc_fingerprint(err_cert);
+  if (vctx->certmgr.is_whitelisted(vctx->host, fingerprint)) {
+    vctx->was_error = false;
+    return 1;
+  }
+
   struct tm t;
   ASN1_TIME_to_tm(X509_get_notAfter(err_cert), &t);
 
@@ -188,7 +198,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     // We failed verification, so extract some information to indicate the
     // problem
     vctx->error = X509_verify_cert_error_string(err);
-    vctx->fingerprint = calc_fingerprint(err_cert);
+    vctx->fingerprint = fingerprint;
 
     printf("===================================\n");
     printf("SSL certificate verification failed\n");
@@ -305,7 +315,8 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
     if (opts->m_use_ssl) {
       printf("SSL negotionation with %s\n", opts->m_server_name.c_str());
 
-      struct verify_ctx verify_ctx = {};
+      struct verify_ctx verify_ctx(certmgr);
+      verify_ctx.host = opts->m_server_name;
       int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
       if (ssl_conn == -1) {
         if (verify_ctx.was_error) {
@@ -324,12 +335,14 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
             switch (ch) {
             case 'o':
               // once
-              printf("Once\n");
+              certmgr.whitelist_cert(opts->m_server_name,
+                  verify_ctx.fingerprint, false);
               valid_choice = true;
               break;
             case 'a':
               // always
-              printf("Always\n");
+              certmgr.whitelist_cert(opts->m_server_name,
+                  verify_ctx.fingerprint, true);
               valid_choice = true;
               break;
             case 'n':

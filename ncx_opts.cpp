@@ -57,9 +57,9 @@ int Options::parse(int argc, char *argv[])
     return -1;
   }
 
-  std::string g_config_dir = pw->pw_dir;
-  g_config_dir += "/.ncx";
-  if (ncx_mkdir(g_config_dir.c_str()) != 0) {
+  _conf_dir = pw->pw_dir;
+  _conf_dir += "/.ncx";
+  if (ncx_mkdir(_conf_dir.c_str()) != 0) {
     return -1;
   }
 

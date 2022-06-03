@@ -9,7 +9,7 @@ DEPS = $(CXX_SRCS:.cpp=.d)
 CC? = gcc
 CXX? = g++
 
-CFLAGS = -Wall -g3
+CFLAGS = -Wall -O2
 
 EXE = ncx
 

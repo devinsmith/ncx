@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
   setup_tty();
 
   CertManager certmgr(opts);
-  app.conn = ncx_connect(&opts);
+  app.conn = ncx_connect(&opts, certmgr);
   if (app.conn == NULL) {
 //    fprintf(stderr, "Couldn't connect.\n");
     ncx_exit(&app);

@@ -17,6 +17,7 @@
 #ifndef __NCX_NET_H__
 #define __NCX_NET_H__
 
+#include "ncx_certs.h"
 #include "ncx_opts.h"
 
 #ifdef __cplusplus
@@ -25,7 +26,7 @@ extern "C" {
 
 void ncx_net_init();
 
-struct ncx_conn *ncx_connect(const Options *opts);
+struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr);
 void ncx_disconnect(struct ncx_conn *conn);
 int ncx_net_getfd(struct ncx_conn *conn);
 int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);

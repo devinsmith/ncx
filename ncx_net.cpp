@@ -36,7 +36,9 @@ struct ncx_conn {
 
 struct verify_ctx {
   bool was_error;
-  char *pem;
+  std::string fingerprint;
+  std::string error;
+  std::string cert;
 };
 static int ssl_verify_idx;
 
@@ -183,11 +185,14 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
   }
 
   if (!preverify_ok) {
-    // We failed verification, so extract some information to indicate the problem
+    // We failed verification, so extract some information to indicate the
+    // problem
+    vctx->error = X509_verify_cert_error_string(err);
+    vctx->fingerprint = calc_fingerprint(err_cert);
+
     printf("===================================\n");
     printf("SSL certificate verification failed\n");
     printf("Error: %d (%s)\n", err, X509_verify_cert_error_string(err));
-    printf("Depth: %d\n", depth);
     printf("Fingerprint: %s\n", calc_fingerprint(err_cert).c_str());
 
     // Dump subject and issuer.
@@ -195,7 +200,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     BIO_printf(bio, "Subject: ");
     X509_NAME_print(bio, X509_get_subject_name(err_cert), 0);
     BIO_printf(bio, "\n");
-    BIO_printf(bio, "Issuer: ");
+    BIO_printf(bio, "Issuer:  ");
     X509_NAME_print(bio, X509_get_issuer_name(err_cert), 0);
     BIO_printf(bio, "\n");
 
@@ -205,7 +210,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
       if (l <= 0)
         break;
       line[l] = '\0';
-      printf("%s\n", line);
+      printf("%s", line);
     }
 
     BIO_free(bio);
@@ -216,31 +221,35 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
     printf("===================================\n");
     //PEM_write_X509(stdout, err_cert);
+    //
+
+    //X509_print_fp(stdout, err_cert);
+
+    bio = BIO_new(BIO_s_mem());
+    X509_print(bio, err_cert);
+    while (1) {
+      char line[1024];
+      int l = BIO_read(bio, line, sizeof(line));
+      if (l <= 0)
+        break;
+      line[l] = '\0';
+      vctx->cert += line;
+    }
+    BIO_free(bio);
+    //printf("%s", vctx->cert.c_str());
   }
 
   vctx->was_error = preverify_ok == 0;
   return preverify_ok;
 }
 
-static int ncx_ssl_connect(struct ncx_conn *conn)
+static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
 {
-  int ret;
-  struct verify_ctx verify_ctx = { 0 };
-
   conn->ssl_ctx = SSL_CTX_new(TLS_client_method());
-  if (conn->ssl_ctx == NULL) {
+  if (conn->ssl_ctx == nullptr) {
     ERR_print_errors_fp(stderr);
     return -1;
   }
-
-#if 0
-  if (!SSL_CTX_load_verify_locations(conn->ssl_ctx, "cert.pem", NULL)) {
-    ERR_print_errors_fp(stderr);
-    return -1;
-  }
-#endif
-
-
 
   SSL_CTX_set_verify(conn->ssl_ctx, SSL_VERIFY_PEER, verify_callback);
   SSL_CTX_set_verify_depth(conn->ssl_ctx, 150);
@@ -251,8 +260,9 @@ static int ncx_ssl_connect(struct ncx_conn *conn)
     return -1;
   }
 
-  ssl_verify_idx = SSL_get_ex_new_index(0, (void *)"verify context", NULL, NULL, NULL);
-  SSL_set_ex_data(conn->ssl, ssl_verify_idx, &verify_ctx);
+  ssl_verify_idx = SSL_get_ex_new_index(
+      0, (void *)"verify context", NULL, NULL, NULL);
+  SSL_set_ex_data(conn->ssl, ssl_verify_idx, &vctx);
 
   if (!SSL_set_fd(conn->ssl, conn->fd)) {
     ERR_print_errors_fp(stderr);
@@ -260,17 +270,18 @@ static int ncx_ssl_connect(struct ncx_conn *conn)
   }
 
   if (SSL_connect(conn->ssl) == -1) {
-    if (verify_ctx.was_error == 1) {
-      printf("Failed to connect due to verification errors\n");
-    }
-    //ERR_print_errors_fp(stderr);
+    SSL_shutdown(conn->ssl);
+    SSL_free(conn->ssl);
+    SSL_CTX_free(conn->ssl_ctx);
+    conn->ssl = nullptr;
+    conn->ssl_ctx = nullptr;
     return -1;
   }
 
   return 0;
 }
 
-struct ncx_conn *ncx_connect(const Options *opts)
+struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
 {
   struct sockaddr_storage ss;
   int sock;
@@ -291,14 +302,51 @@ struct ncx_conn *ncx_connect(const Options *opts)
   conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
   conn->fd = sock;
   if (opts->m_use_ssl) {
-    int ssl_conn = ncx_ssl_connect(conn);
-    if (ssl_conn == -1) {
-      fprintf(stderr, "Failed to connect to %s:%d\n", opts->m_server_name.c_str(),
-          opts->m_port);
-      free(conn);
-      return NULL;
-    } else if (ssl_conn == -2) {
+    printf("SSL negotionation with %s\n", opts->m_server_name.c_str());
 
+    bool connected = false;
+    while (!connected) {
+      struct verify_ctx verify_ctx = {};
+      int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
+      if (ssl_conn == -1) {
+        if (verify_ctx.was_error) {
+          printf("Failed to connect due to verification errors\n");
+          char ch;
+          do {
+            printf("You can choose trust this server:\n"
+                "(O)nce\n"
+                "(A)lways\n"
+                "(N)ever (will disconnect)\n"
+                "(V)iew certificate for more information\n");
+            printf("> ");
+            ch = getchar();
+            printf("%c\n", ch);
+            ch = tolower(ch);
+            switch (ch) {
+            case 'o':
+              // once
+              printf("Once\n");
+              break;
+            case 'a':
+              // always
+              printf("Always\n");
+              break;
+            case 'n':
+              ncx_disconnect(conn);
+              return NULL;
+              break;
+            case 'v':
+              printf("%s\n", verify_ctx.cert.c_str());
+              break;
+            }
+          } while (ch == 'v');
+        } else {
+          fprintf(stderr, "Failed to connect to %s:%d\n",
+              opts->m_server_name.c_str(), opts->m_port);
+          ncx_disconnect(conn);
+          return NULL;
+        }
+      }
     }
   }
 

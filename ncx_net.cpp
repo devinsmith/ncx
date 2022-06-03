@@ -245,7 +245,6 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
 static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
 {
-  if (conn->ssl_ctx == nullptr) {
   conn->ssl_ctx = SSL_CTX_new(TLS_client_method());
   if (conn->ssl_ctx == nullptr) {
     ERR_print_errors_fp(stderr);
@@ -269,22 +268,13 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
     ERR_print_errors_fp(stderr);
     return -1;
   }
-  }
 
   int ret;
   if ((ret = SSL_connect(conn->ssl)) == -1) {
-    int ssl_err = SSL_get_error(conn->ssl, ret);
-    if (ssl_err == SSL_ERROR_SYSCALL) {
-      printf("%d %d\n", ssl_err, errno);
-    }
-    ERR_print_errors_fp(stderr);
-#if 0
-    SSL_shutdown(conn->ssl);
     SSL_free(conn->ssl);
     SSL_CTX_free(conn->ssl_ctx);
     conn->ssl = nullptr;
     conn->ssl_ctx = nullptr;
-#endif
     return -1;
   }
 
@@ -320,25 +310,27 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
       if (ssl_conn == -1) {
         if (verify_ctx.was_error) {
           printf("Failed to connect due to verification errors\n");
-          char ch;
-          do {
+          bool valid_choice = false;
+          while (!valid_choice) {
             printf("You can choose to trust this server:\n"
                 "(O)nce\n"
                 "(A)lways\n"
                 "(N)ever (will disconnect)\n"
                 "(V)iew certificate for more information\n");
             printf("> ");
-            ch = getchar();
+            char ch = getchar();
             printf("%c\n", ch);
             ch = tolower(ch);
             switch (ch) {
             case 'o':
               // once
               printf("Once\n");
+              valid_choice = true;
               break;
             case 'a':
               // always
               printf("Always\n");
+              valid_choice = true;
               break;
             case 'n':
               ncx_disconnect(conn);
@@ -347,8 +339,10 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
             case 'v':
               printf("%s\n", verify_ctx.cert.c_str());
               break;
+            default:
+              break;
             }
-          } while (ch == 'v');
+          };
         } else {
           fprintf(stderr, "Failed to connect to %s:%d\n",
               opts->m_server_name.c_str(), opts->m_port);

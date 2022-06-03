@@ -145,7 +145,7 @@ int ncx_io_run(struct ncx_app *app)
   }
 
   if (FD_ISSET(conn_fd, &readfds)) {
-    app->dirty = clear_line(app->chars);
+    app->dirty = clear_line(app->chars + 1);
     ncx_io_read(app);
   }
 

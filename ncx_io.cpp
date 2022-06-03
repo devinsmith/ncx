@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "ncx_color.h"
 #include "ncx_io.h"
 #include "ncx_net.h"
 
@@ -85,6 +86,15 @@ static void ncx_getkey(struct ncx_app *app)
   }
 }
 
+static void process_line(const char *data)
+{
+  if (data[0] == '>') {
+    print_bold(Color::Red, "%s\n", data);
+  } else {
+    printf("%s\n", data);
+  }
+}
+
 static void process_data(struct ncx_app *app, char *buffer, ssize_t nbytes)
 {
   int i;
@@ -99,7 +109,7 @@ static void process_data(struct ncx_app *app, char *buffer, ssize_t nbytes)
     if (buffer[i] == '\n') {
       /* Display message to user */
       app->m_buffer[app->m_buf_idx] = '\0';
-      printf("%s\n", app->m_buffer);
+      process_line(app->m_buffer);
       app->dirty = 1;
 
       /* clear out our input buffer */

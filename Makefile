@@ -2,7 +2,8 @@
 
 .PHONY: all clean
 
-CXX_SRCS = ncx_certs.cpp ncx_main.cpp ncx_io.cpp ncx_net.cpp ncx_opts.cpp
+CXX_SRCS = ncx_certs.cpp ncx_color.cpp ncx_main.cpp ncx_io.cpp ncx_net.cpp \
+					 ncx_opts.cpp
 OBJS = $(CXX_SRCS:.cpp=.o)
 DEPS = $(CXX_SRCS:.cpp=.d)
 

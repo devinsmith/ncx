@@ -135,18 +135,18 @@ static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
 static std::string calc_fingerprint(X509 *cert)
 {
   unsigned char md[EVP_MAX_MD_SIZE];
-  char hash[EVP_MAX_MD_SIZE * 2 + 1];
+  std::string hash;
   unsigned int md_len = (unsigned int)sizeof(md);
+  static const char hex[] = "0123456789abcdef";
 
   memset(md, 0, sizeof(md));
-  hash[0] = '\0';
 
   int success = X509_digest(cert, EVP_sha256(), md, &md_len);
   if (success) {
     unsigned int j;
-    for (j = 0; j < md_len && j * 2 + 1 < sizeof(hash); ++j) {
-      hash[j * 2] = "0123456789abcdef"[md[j] >> 4];
-      hash[j * 2 + 1] = "0123456789abcdef"[md[j]&0xf];
+    for (j = 0; j < md_len; ++j) {
+      hash += hex[md[j] >> 4];
+      hash += hex[md[j]&0xf];
     }
   }
 

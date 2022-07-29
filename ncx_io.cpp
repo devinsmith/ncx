@@ -17,8 +17,8 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "ncx_color.h"
 #include "ncx_io.h"
@@ -148,7 +148,7 @@ int ncx_io_run(struct ncx_app *app)
 
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  if (select(conn_fd + 1, &readfds, NULL, NULL, &tv) == -1) {
+  if (select(conn_fd + 1, &readfds, nullptr, nullptr, &tv) == -1) {
     // error
     fprintf(stderr, "select error\n");
     ncx_exit(app);

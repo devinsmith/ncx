@@ -15,8 +15,8 @@
  */
 
 #include <termios.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "ncx_certs.h"
 #include "ncx_io.h"

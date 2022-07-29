@@ -34,7 +34,7 @@ void CertManager::read_certs()
   int line_num = 0;
 
   certfp = fopen(_cert_file.c_str(), "r");
-  if (certfp == NULL) {
+  if (certfp == nullptr) {
     return;
   }
 

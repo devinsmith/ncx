@@ -14,17 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <arpa/inet.h>
 
 #include "ncx_net.h"
 
@@ -46,81 +46,23 @@ struct verify_ctx {
 };
 static int ssl_verify_idx;
 
-#define SIN4(x) ((struct sockaddr_in *) (x))
-#define SIN6(x) ((struct sockaddr_in6 *) (x))
-
-static size_t sin_len(const struct sockaddr_storage *ss)
+static int sock_connect(struct addrinfo *addr)
 {
-  if (ss->ss_family == AF_INET6) {
-    return sizeof(struct sockaddr_in6);
+  char str[INET6_ADDRSTRLEN];
+  if (addr->ai_addr->sa_family == AF_INET) {
+    struct sockaddr_in *p = (struct sockaddr_in *)addr->ai_addr;
+    printf("Trying %s ...\n", inet_ntop(AF_INET, &p->sin_addr, str, sizeof(str)));
+  } else if (addr->ai_addr->sa_family == AF_INET6) {
+    struct sockaddr_in6 *p = (struct sockaddr_in6 *)addr->ai_addr;
+    printf("Trying %s ...\n", inet_ntop(AF_INET6, &p->sin6_addr, str, sizeof(str)));
   }
-  return sizeof(struct sockaddr_in);
-}
-
-static void sin_set_port(struct sockaddr_storage *ss, unsigned short port)
-{
-  if (ss->ss_family == AF_INET6) {
-    SIN6(ss)->sin6_port = port;
-  }
-  SIN4(ss)->sin_port = port;
-}
-
-static int get_addr(const char *hostname, struct sockaddr_storage *addr)
-{
-  size_t len;
-  int ret;
-  struct addrinfo *res = nullptr;
-
-  if ((ret = getaddrinfo(hostname, nullptr, nullptr, &res)) != 0) {
-    if (res != nullptr) {
-      freeaddrinfo(res);
-    }
-    fprintf(stderr, "getaddrinfo: %s: %s\n", hostname, gai_strerror(ret));
-    return -1;
-  }
-
-  switch (res->ai_addr->sa_family) {
-  case AF_INET:
-    len = sizeof(struct sockaddr_in);
-    break;
-
-  case AF_INET6:
-    len = sizeof(struct sockaddr_in6);
-    break;
-
-  default:
-    fprintf(stderr, "Unknown family: %d\n", res->ai_addr->sa_family);
-    freeaddrinfo(res);
-    return -1;
-  }
-
-  if (len < res->ai_addrlen) {
-    fprintf(stderr, "hostname addr len incorrect: %zu < %u\n", len,
-        res->ai_addrlen);
-    freeaddrinfo(res);
-    return -1;
-  }
-
-  memcpy(addr, res->ai_addr, res->ai_addrlen);
-  freeaddrinfo(res);
-
-  return 0;
-}
-
-static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
-    int *out_sock)
-{
-  int sock;
-  int ret = 0;
-
-  sock = socket(ss->ss_family, SOCK_STREAM, 0);
+  int sock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
   if (sock < 0) {
     fprintf(stderr, "Failed to create socket: %s\n", strerror(errno));
     return -1;
   }
 
-  sin_set_port(ss, htons(port));
-  if (connect(sock, (struct sockaddr *)ss, sin_len(ss)) != 0) {
+  if (connect(sock, addr->ai_addr, addr->ai_addrlen) != 0) {
     if (errno != EINPROGRESS) {
       fprintf(stderr, "connect: %s\n", strerror(errno));
       close(sock);
@@ -128,8 +70,7 @@ static int sock_connect(struct sockaddr_storage *ss, unsigned short port,
     }
   }
 
-  *out_sock = sock;
-  return ret;
+  return sock;
 }
 
 static std::string calc_fingerprint(X509 *cert)
@@ -293,20 +234,45 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
 
 struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
 {
-  struct sockaddr_storage ss;
-  int sock;
-  struct ncx_conn *conn;
+  struct addrinfo hint{};
+  struct addrinfo *address_list;
+  struct addrinfo *addr;
+  char port_string[33];
 
   printf("Connecting to %s:%d...\n", opts->m_server_name.c_str(), opts->m_port);
-  if (get_addr(opts->m_server_name.c_str(), &ss) == -1) {
+
+  hint.ai_family = PF_UNSPEC; // PF_INET or PF_INET6
+  hint.ai_socktype = SOCK_STREAM;
+  hint.ai_protocol = IPPROTO_TCP;
+
+  snprintf(port_string, sizeof(port_string), "%d", opts->m_port);
+  int gai_ret = getaddrinfo(opts->m_server_name.c_str(), port_string, &hint,
+    &address_list);
+  if (gai_ret != 0) {
+    if (address_list != nullptr) {
+      freeaddrinfo(address_list);
+    }
+    fprintf(stderr, "getaddrinfo: %s: %s\n", opts->m_server_name.c_str(),
+      gai_strerror(gai_ret));
     return nullptr;
   }
 
+  int sock;
+  struct ncx_conn *conn;
+
   bool connected = false;
   while (!connected) {
-    if (sock_connect(&ss, opts->m_port, &sock) < 0) {
+    for (addr = address_list; addr; addr = addr->ai_next) {
+      sock = sock_connect(addr);
+      if (sock >= 0) {
+        break;
+      }
+    }
+
+    if (sock == -1) {
       fprintf(stderr, "Failed to connect to %s:%d\n",
-          opts->m_server_name.c_str(), opts->m_port);
+              opts->m_server_name.c_str(), opts->m_port);
+      freeaddrinfo(address_list);
       return nullptr;
     }
 
@@ -324,41 +290,42 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
           bool valid_choice = false;
           while (!valid_choice) {
             printf("You can choose to trust this server:\n"
-                "(O)nce\n"
-                "(A)lways\n"
-                "(N)ever (will disconnect)\n"
-                "(V)iew certificate for more information\n");
+                   "(O)nce\n"
+                   "(A)lways\n"
+                   "(N)ever (will disconnect)\n"
+                   "(V)iew certificate for more information\n");
             printf("> ");
             char ch = getchar();
             printf("%c\n", ch);
             ch = tolower(ch);
             switch (ch) {
-            case 'o':
-              // once
-              certmgr.whitelist_cert(opts->m_server_name,
-                  verify_ctx.fingerprint, false);
-              valid_choice = true;
-              break;
-            case 'a':
-              // always
-              certmgr.whitelist_cert(opts->m_server_name,
-                  verify_ctx.fingerprint, true);
-              valid_choice = true;
-              break;
-            case 'n':
-              ncx_disconnect(conn);
-              return nullptr;
-              break;
-            case 'v':
-              printf("%s\n", verify_ctx.cert.c_str());
-              break;
-            default:
-              break;
+              case 'o':
+                // once
+                certmgr.whitelist_cert(opts->m_server_name,
+                                       verify_ctx.fingerprint, false);
+                valid_choice = true;
+                break;
+              case 'a':
+                // always
+                certmgr.whitelist_cert(opts->m_server_name,
+                                       verify_ctx.fingerprint, true);
+                valid_choice = true;
+                break;
+              case 'n':
+                ncx_disconnect(conn);
+                return nullptr;
+                break;
+              case 'v':
+                printf("%s\n", verify_ctx.cert.c_str());
+                break;
+              default:
+                break;
             }
           };
         } else {
           fprintf(stderr, "Failed to connect to %s:%d\n",
-              opts->m_server_name.c_str(), opts->m_port);
+                  opts->m_server_name.c_str(), opts->m_port);
+          freeaddrinfo(address_list);
           ncx_disconnect(conn);
           return nullptr;
         }
@@ -369,7 +336,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
       connected = true;
     }
   }
-
+  freeaddrinfo(address_list);
   printf("Connected!\n");
 
   return conn;

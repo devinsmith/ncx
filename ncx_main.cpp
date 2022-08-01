@@ -28,6 +28,9 @@ static struct termios g_term_attr;
 static struct termios g_saved_attr;
 static int g_attrs_saved = 0;
 
+const char *progname = "ncx";
+const char *progversion = "v0.03";
+
 static void setup_tty()
 {
   if (tcgetattr(fileno(stdin), &g_term_attr) != 0) {
@@ -60,7 +63,7 @@ int main(int argc, char *argv[])
   struct ncx_app app = { 0 };
   Options opts;
 
-  printf("ncx v0.02\n");
+  printf("%s %s\n", progname, progversion);
 
   opts.parse(argc, argv);
   ncx_net_init();

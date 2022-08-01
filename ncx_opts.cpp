@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include "ncx_opts.h"
+#include "ncx_main.h"
 
 static int ncx_mkdir(const char *path)
 {
@@ -40,6 +41,21 @@ static int ncx_mkdir(const char *path)
     }
   }
   return 0;
+}
+
+static void usage(int err)
+{
+  if (err) {
+    fprintf(stderr, "Invalid argument\n");
+  }
+
+  fprintf(stderr, "usage: %s [-i/--no-ssl] [server:port]\n", progname);
+  fprintf(stderr, "\t-i           - Connect without SSL.\n");
+  fprintf(stderr, "\t--no-ssl     - Connect without SSL.\n");
+  fprintf(stderr, "\t--help       - Print this message.\n");
+  fprintf(stderr, "\tserver:port  - (optional) Connect to server and port.\n");
+
+  exit(err);
 }
 
 Options::Options()
@@ -68,6 +84,19 @@ int Options::parse(int argc, char *argv[])
       if (!strcmp(p, "-i") || !strcmp(p, "--no-ssl")) {
         m_use_ssl = false;
         m_port = 6666;
+      } else if (!strcmp(p, "--help")) {
+        usage(0);
+      } else {
+        usage(1);
+      }
+    } else {
+      char *p_colon = strchr(p, ':');
+      if (p_colon != nullptr) {
+        *p_colon = '\0';
+        m_server_name = p;
+        m_port = atoi(p_colon + 1);
+      } else {
+        m_server_name = p;
       }
     }
   }

@@ -23,6 +23,9 @@ extern "C" {
 
 struct ncx_conn;
 
+extern const char *progname;
+extern const char *progversion;
+
 struct ncx_app {
   struct ncx_conn *conn;
   int dirty;

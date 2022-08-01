@@ -16,11 +16,9 @@
 
 #include <sys/stat.h>
 
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <pwd.h>
 #include <unistd.h>
 

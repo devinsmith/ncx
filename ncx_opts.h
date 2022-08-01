@@ -25,7 +25,7 @@ public:
 
   int parse(int argc, char *argv[]);
 
-  const std::string& conf_dir() const { return _conf_dir; }
+  [[nodiscard]] const std::string& conf_dir() const { return _conf_dir; }
 
   bool m_use_ssl;
   unsigned short m_port;

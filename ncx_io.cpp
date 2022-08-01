@@ -95,7 +95,7 @@ static void process_line(const char *data)
   }
 }
 
-static void process_data(struct ncx_app *app, char *buffer, ssize_t nbytes)
+static void process_data(struct ncx_app *app, const char *buffer, ssize_t nbytes)
 {
   int i;
 

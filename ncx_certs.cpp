@@ -92,7 +92,7 @@ void CertManager::whitelist_cert(const std::string& host,
 
   printf("Storing to %s\n", _cert_file.c_str());
   FILE *certfp = fopen(_cert_file.c_str(), "a");
-  if (certfp == NULL) {
+  if (certfp == nullptr) {
     fprintf(stderr, "Failed to store cert!\n");
     return;
   }

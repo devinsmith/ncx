@@ -2,4 +2,6 @@
 *.o
 ncx
 build*/
+cmake-build*/
+.idea/
 

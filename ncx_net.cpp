@@ -35,7 +35,7 @@ struct ncx_conn {
 };
 
 struct verify_ctx {
-  verify_ctx(const CertManager& cm) : was_error(false), certmgr(cm) {}
+  explicit verify_ctx(const CertManager& cm) : was_error(false), certmgr(cm) {}
 
   bool was_error;
   std::string host;
@@ -69,10 +69,10 @@ static int get_addr(const char *hostname, struct sockaddr_storage *addr)
 {
   size_t len;
   int ret;
-  struct addrinfo *res = NULL;
+  struct addrinfo *res = nullptr;
 
-  if ((ret = getaddrinfo(hostname, NULL, NULL, &res)) != 0) {
-    if (res != NULL) {
+  if ((ret = getaddrinfo(hostname, nullptr, nullptr, &res)) != 0) {
+    if (res != nullptr) {
       freeaddrinfo(res);
     }
     fprintf(stderr, "getaddrinfo: %s: %s\n", hostname, gai_strerror(ret));
@@ -237,7 +237,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
     bio = BIO_new(BIO_s_mem());
     X509_print(bio, err_cert);
-    while (1) {
+    while (true) {
       char line[1024];
       int l = BIO_read(bio, line, sizeof(line));
       if (l <= 0)
@@ -265,13 +265,13 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
   SSL_CTX_set_verify_depth(conn->ssl_ctx, 150);
 
   conn->ssl = SSL_new(conn->ssl_ctx);
-  if (conn->ssl == NULL) {
+  if (conn->ssl == nullptr) {
     ERR_print_errors_fp(stderr);
     return -1;
   }
 
   ssl_verify_idx = SSL_get_ex_new_index(
-      0, (void *)"verify context", NULL, NULL, NULL);
+      0, (void *)"verify context", nullptr, nullptr, nullptr);
   SSL_set_ex_data(conn->ssl, ssl_verify_idx, &vctx);
 
   if (!SSL_set_fd(conn->ssl, conn->fd)) {
@@ -347,7 +347,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
               break;
             case 'n':
               ncx_disconnect(conn);
-              return NULL;
+              return nullptr;
               break;
             case 'v':
               printf("%s\n", verify_ctx.cert.c_str());
@@ -377,12 +377,12 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
 
 void ncx_disconnect(struct ncx_conn *conn)
 {
-  if (conn != NULL) {
-    if (conn->ssl != NULL) {
+  if (conn != nullptr) {
+    if (conn->ssl != nullptr) {
       SSL_shutdown(conn->ssl);
       SSL_free(conn->ssl);
     }
-    if (conn->ssl_ctx != NULL) {
+    if (conn->ssl_ctx != nullptr) {
       SSL_CTX_free(conn->ssl_ctx);
     }
     close(conn->fd);

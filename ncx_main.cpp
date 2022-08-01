@@ -47,7 +47,7 @@ static void setup_tty()
 
 void ncx_exit(struct ncx_app *app)
 {
-  if (app->conn != NULL) {
+  if (app->conn != nullptr) {
     ncx_disconnect(app->conn);
   }
 
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
   CertManager certmgr(opts);
   app.conn = ncx_connect(&opts, certmgr);
-  if (app.conn == NULL) {
+  if (app.conn == nullptr) {
 //    fprintf(stderr, "Couldn't connect.\n");
     ncx_exit(&app);
   }

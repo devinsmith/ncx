@@ -257,7 +257,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
     return nullptr;
   }
 
-  int sock;
+  int sock = -1;
   struct ncx_conn *conn;
 
   bool connected = false;

@@ -120,17 +120,18 @@ static void process_data(struct ncx_app *app, const char *buffer, ssize_t nbytes
   }
 }
 
-static void ncx_io_read(struct ncx_app *app)
+static int ncx_io_read(struct ncx_app *app)
 {
   char buffer[2048];
   int bytes = ncx_read_data(app->conn, buffer, sizeof(buffer));
 
   if (bytes <= 0) {
     fprintf(stderr, "socket closed\n");
-    ncx_exit(app);
+    return -1;
   }
 
   process_data(app, buffer, bytes);
+  return 0;
 }
 
 int ncx_io_run(struct ncx_app *app)
@@ -151,12 +152,14 @@ int ncx_io_run(struct ncx_app *app)
   if (select(conn_fd + 1, &readfds, nullptr, nullptr, &tv) == -1) {
     // error
     fprintf(stderr, "select error\n");
-    ncx_exit(app);
+    return -1;
   }
 
   if (FD_ISSET(conn_fd, &readfds)) {
     app->dirty = clear_line(app->chars + 1);
-    ncx_io_read(app);
+    if (ncx_io_read(app) == -1) {
+      return -1;
+    }
   }
 
   if (FD_ISSET(0, &readfds)) {

@@ -39,9 +39,6 @@ struct ncx_app {
   int m_buf_idx;
 };
 
-
-void ncx_exit(struct ncx_app *app);
-
 #ifdef __cplusplus
 }
 #endif

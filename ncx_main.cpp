@@ -48,14 +48,13 @@ static void setup_tty()
   }
 }
 
-void ncx_exit(struct ncx_app *app)
+static void ncx_exit(struct ncx_app *app)
 {
   if (app->conn != nullptr) {
     ncx_disconnect(app->conn);
   }
 
   tcsetattr(fileno(stdin), TCSAFLUSH, &g_saved_attr);
-  exit(0);
 }
 
 int main(int argc, char *argv[])
@@ -77,8 +76,11 @@ int main(int argc, char *argv[])
     ncx_exit(&app);
   }
 
-  while (1) {
-    ncx_io_run(&app);
+  while (true) {
+    if (ncx_io_run(&app) == -1) {
+      break;
+    }
   }
+  ncx_exit(&app);
   return 0;
 }

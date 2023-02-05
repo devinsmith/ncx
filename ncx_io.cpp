@@ -86,13 +86,38 @@ static void ncx_getkey(struct ncx_app *app)
   }
 }
 
-static void process_line(const char *data)
+static void process_line(struct ncx_app *app)
 {
-  if (data[0] == '>') {
-    print_bold(Color::Red, "%s\n", data);
-  } else {
-    printf("%s\n", data);
+  char *data = app->m_buffer;
+
+  if (app->user_id < 0) {
+    if (strstr(data, ">> You just logged on line") != nullptr) {
+      sscanf(data, "%*c%*c %*s %*s %*s %*s %*s %d", &app->user_id);
+    }
   }
+
+  if (data[0] == '>') {
+    print_bold(Color::Red, "%s\n", app->m_buffer);
+    return;
+  }
+
+  if (data[0] == '[') {
+    // extract number
+    char *tmp = strchr(data, ']');
+    if (tmp != nullptr) {
+      *tmp = '\0';
+
+      int num = atoi(data + 1);
+      *tmp = ']';
+
+      if (num == app->user_id) {
+        print_bold(Color::Blue, "%s\n", app->m_buffer);
+        return;
+      }
+    }
+  }
+
+  printf("%s\n", app->m_buffer);
 }
 
 static void process_data(struct ncx_app *app, const char *buffer, ssize_t nbytes)
@@ -107,9 +132,9 @@ static void process_data(struct ncx_app *app, const char *buffer, ssize_t nbytes
     }
 
     if (buffer[i] == '\n') {
-      /* Display message to user */
       app->m_buffer[app->m_buf_idx] = '\0';
-      process_line(app->m_buffer);
+      /* Display message to user */
+      process_line(app);
       app->dirty = 1;
 
       /* clear out our input buffer */
@@ -139,6 +164,10 @@ int ncx_io_run(struct ncx_app *app)
   struct timeval tv;
   fd_set readfds;
   int conn_fd;
+
+  if (app->conn == nullptr) {
+    return -1;
+  }
 
   conn_fd = ncx_net_getfd(app->conn);
 

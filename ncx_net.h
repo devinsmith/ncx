@@ -30,7 +30,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr);
 void ncx_disconnect(struct ncx_conn *conn);
 int ncx_net_getfd(struct ncx_conn *conn);
 int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);
-int ncx_read_data(struct ncx_conn *conn, char *buffer, size_t sz_buffer);
+int ncx_read_data(const struct ncx_conn *conn, char *buffer, size_t sz_buffer);
 
 #ifdef __cplusplus
 }

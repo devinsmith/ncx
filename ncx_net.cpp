@@ -378,7 +378,7 @@ int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz)
   return send(conn->fd, data, sz, 0);
 }
 
-int ncx_read_data(struct ncx_conn *conn, char *buffer, size_t szbuffer)
+int ncx_read_data(const struct ncx_conn *conn, char *buffer, size_t szbuffer)
 {
   if (conn->ssl) {
     return SSL_read(conn->ssl, buffer, szbuffer);

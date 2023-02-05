@@ -17,17 +17,16 @@
 #ifndef __NCX_MAIN_H__
 #define __NCX_MAIN_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct ncx_conn;
 
 extern const char *progname;
 extern const char *progversion;
 
 struct ncx_app {
+  explicit ncx_app();
+
   struct ncx_conn *conn;
+  int user_id;
   int dirty;
 
   // Input buffer
@@ -38,9 +37,5 @@ struct ncx_app {
   // Output buffer
   int m_buf_idx;
 };
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __NCX_MAIN_H__ */

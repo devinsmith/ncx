@@ -57,9 +57,13 @@ static void ncx_exit(struct ncx_app *app)
   tcsetattr(fileno(stdin), TCSAFLUSH, &g_saved_attr);
 }
 
+ncx_app::ncx_app() : conn{nullptr}, user_id{-1}, dirty{0}, chars{0}, m_buf_idx{0}
+{
+}
+
 int main(int argc, char *argv[])
 {
-  struct ncx_app app = { 0 };
+  struct ncx_app app;
   Options opts;
 
   printf("%s %s\n", progname, progversion);

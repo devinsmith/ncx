@@ -232,27 +232,27 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
   return 0;
 }
 
-struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
+struct ncx_conn *ncx_connect(const ncx_options *opts, CertManager& certmgr)
 {
   struct addrinfo hint{};
   struct addrinfo *address_list;
   struct addrinfo *addr;
   char port_string[33];
 
-  printf("Connecting to %s:%d...\n", opts->m_server_name.c_str(), opts->m_port);
+  printf("Connecting to %s:%d...\n", opts->server, opts->port);
 
   hint.ai_family = PF_UNSPEC; // PF_INET or PF_INET6
   hint.ai_socktype = SOCK_STREAM;
   hint.ai_protocol = IPPROTO_TCP;
 
-  snprintf(port_string, sizeof(port_string), "%d", opts->m_port);
-  int gai_ret = getaddrinfo(opts->m_server_name.c_str(), port_string, &hint,
+  snprintf(port_string, sizeof(port_string), "%d", opts->port);
+  int gai_ret = getaddrinfo(opts->server, port_string, &hint,
     &address_list);
   if (gai_ret != 0) {
     if (address_list != nullptr) {
       freeaddrinfo(address_list);
     }
-    fprintf(stderr, "getaddrinfo: %s: %s\n", opts->m_server_name.c_str(),
+    fprintf(stderr, "getaddrinfo: %s: %s\n", opts->server,
       gai_strerror(gai_ret));
     return nullptr;
   }
@@ -271,18 +271,18 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
 
     if (sock == -1) {
       fprintf(stderr, "Failed to connect to %s:%d\n",
-              opts->m_server_name.c_str(), opts->m_port);
+              opts->server, opts->port);
       freeaddrinfo(address_list);
       return nullptr;
     }
 
     conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
     conn->fd = sock;
-    if (opts->m_use_ssl) {
-      printf("SSL negotionation with %s\n", opts->m_server_name.c_str());
+    if (opts->use_ssl) {
+      printf("SSL negotionation with %s\n", opts->server);
 
       struct verify_ctx verify_ctx(certmgr);
-      verify_ctx.host = opts->m_server_name;
+      verify_ctx.host = opts->server;
       int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
       if (ssl_conn == -1) {
         if (verify_ctx.was_error) {
@@ -301,13 +301,13 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
             switch (ch) {
               case 'o':
                 // once
-                certmgr.whitelist_cert(opts->m_server_name,
+                certmgr.whitelist_cert(opts->server,
                                        verify_ctx.fingerprint, false);
                 valid_choice = true;
                 break;
               case 'a':
                 // always
-                certmgr.whitelist_cert(opts->m_server_name,
+                certmgr.whitelist_cert(opts->server,
                                        verify_ctx.fingerprint, true);
                 valid_choice = true;
                 break;
@@ -324,7 +324,7 @@ struct ncx_conn *ncx_connect(const Options *opts, CertManager& certmgr)
           };
         } else {
           fprintf(stderr, "Failed to connect to %s:%d\n",
-                  opts->m_server_name.c_str(), opts->m_port);
+                  opts->server, opts->port);
           freeaddrinfo(address_list);
           ncx_disconnect(conn);
           return nullptr;

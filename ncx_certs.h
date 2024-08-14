@@ -20,8 +20,6 @@
 #include <string>
 #include <vector>
 
-class Options;
-
 struct Cert {
   Cert(const std::string& hn, const std::string& fp) :
     hostname(hn), fingerprint(fp) {}
@@ -31,7 +29,7 @@ struct Cert {
 
 class CertManager {
 public:
-  CertManager(const Options& opts);
+  CertManager();
 
   bool is_whitelisted(const std::string& host, const std::string& fp) const;
   void whitelist_cert(const std::string& host, const std::string& fp,

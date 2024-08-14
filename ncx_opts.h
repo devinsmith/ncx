@@ -17,22 +17,13 @@
 #ifndef NCX_OPTS_H
 #define NCX_OPTS_H
 
-#include <string>
-
-class Options {
-public:
-  Options();
-
-  int parse(int argc, char *argv[]);
-
-  [[nodiscard]] const std::string& conf_dir() const { return _conf_dir; }
-
-  bool m_use_ssl;
-  unsigned short m_port;
-  std::string m_server_name;
-
-private:
-  std::string _conf_dir;
+struct ncx_options {
+  bool use_ssl;
+  unsigned short port;
+  const char *server;
 };
+
+const char *ncx_opts_dir();
+int ncx_opts_parse(int argc, char *argv[], struct ncx_options *opts);
 
 #endif /* NCX_OPTS_H */

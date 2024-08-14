@@ -19,9 +19,9 @@
 #include "ncx_certs.h"
 #include "ncx_opts.h"
 
-CertManager::CertManager(const Options& opts)
+CertManager::CertManager()
 {
-  _cert_file = opts.conf_dir();
+  _cert_file = ncx_opts_dir();
   _cert_file += "/certs";
 
   read_certs();

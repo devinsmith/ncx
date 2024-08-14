@@ -64,16 +64,18 @@ ncx_app::ncx_app() : conn{nullptr}, user_id{-1}, dirty{0}, chars{0}, m_buf_idx{0
 int main(int argc, char *argv[])
 {
   struct ncx_app app;
-  Options opts;
+  struct ncx_options opts;
 
   printf("%s %s\n", progname, progversion);
 
-  opts.parse(argc, argv);
+  if (ncx_opts_parse(argc, argv, &opts) == -1) {
+    return 1;
+  }
   ncx_net_init();
 
   setup_tty();
 
-  CertManager certmgr(opts);
+  CertManager certmgr;
   app.conn = ncx_connect(&opts, certmgr);
   if (app.conn == nullptr) {
 //    fprintf(stderr, "Couldn't connect.\n");

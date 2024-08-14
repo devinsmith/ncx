@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <cerrno>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <pwd.h>
@@ -24,6 +25,8 @@
 
 #include "ncx_opts.h"
 #include "ncx_main.h"
+
+static char s_conf_dir[1024];
 
 static int ncx_mkdir(const char *path)
 {
@@ -58,12 +61,7 @@ static void usage(int err)
   exit(err);
 }
 
-Options::Options()
-  : m_use_ssl(true), m_port(6667), m_server_name("mikekohn.net")
-{
-}
-
-int Options::parse(int argc, char *argv[])
+int ncx_opts_parse(int argc, char *argv[], struct ncx_options *opts)
 {
   struct passwd *pw = getpwuid(getuid());
   if (pw == nullptr) {
@@ -71,19 +69,22 @@ int Options::parse(int argc, char *argv[])
     return -1;
   }
 
-  _conf_dir = pw->pw_dir;
-  _conf_dir += "/.ncx";
-  if (ncx_mkdir(_conf_dir.c_str()) != 0) {
+  snprintf(s_conf_dir, sizeof(s_conf_dir), "%s/.ncx", pw->pw_dir);
+  if (ncx_mkdir(s_conf_dir) != 0) {
     return -1;
   }
+
+  opts->use_ssl = true;
+  opts->port = 6667;
+  opts->server = "mikekohn.net";
 
   // Quick arg parser...
   while (--argc) {
     char *p = *++argv;
     if (*p == '-') {
       if (!strcmp(p, "-i") || !strcmp(p, "--no-ssl")) {
-        m_use_ssl = false;
-        m_port = 6666;
+        opts->use_ssl = false;
+        opts->port = 6666;
       } else if (!strcmp(p, "--help")) {
         usage(0);
       } else {
@@ -93,13 +94,19 @@ int Options::parse(int argc, char *argv[])
       char *p_colon = strchr(p, ':');
       if (p_colon != nullptr) {
         *p_colon = '\0';
-        m_server_name = p;
-        m_port = atoi(p_colon + 1);
+        opts->server = p;
+        opts->port = atoi(p_colon + 1);
       } else {
-        m_server_name = p;
+        opts->server = p;
       }
     }
   }
 
   return 0;
 }
+
+const char *ncx_opts_dir()
+{
+  return s_conf_dir;
+}
+

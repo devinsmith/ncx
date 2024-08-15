@@ -97,7 +97,7 @@ static void process_line(struct ncx_app *app)
   }
 
   if (data[0] == '>') {
-    print_bold(Color::Red, "%s\n", app->m_buffer);
+    print_bold(COLOR_RED, "%s\n", app->m_buffer);
     return;
   }
 
@@ -111,7 +111,7 @@ static void process_line(struct ncx_app *app)
       *tmp = ']';
 
       if (num == app->user_id) {
-        print_bold(Color::Blue, "%s\n", app->m_buffer);
+        print_bold(COLOR_BLUE, "%s\n", app->m_buffer);
         return;
       }
     }

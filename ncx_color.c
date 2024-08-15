@@ -14,17 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "ncx_color.h"
 
-void print_color(Color c, const char *fmt, ...)
+void print_color(enum Color c, const char *fmt, ...)
 {
   va_list ap;
 
   va_start(ap, fmt);
 
-  int c_code = static_cast<int>(c) + 30;
+  int c_code = c + 30;
 
   printf("\x1b[%dm", c_code);
   vprintf(fmt, ap);
@@ -33,13 +33,13 @@ void print_color(Color c, const char *fmt, ...)
   va_end(ap);
 }
 
-void print_bold(Color c, const char *fmt, ...)
+void print_bold(enum Color c, const char *fmt, ...)
 {
   va_list ap;
 
   va_start(ap, fmt);
 
-  int c_code = static_cast<int>(c) + 30;
+  int c_code = c + 30;
 
   printf("\x1b[1;%dm", c_code);
   vprintf(fmt, ap);

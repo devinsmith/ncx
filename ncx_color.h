@@ -17,20 +17,28 @@
 #ifndef NCX_COLOR_H
 #define NCX_COLOR_H
 
-#include <cstdarg>
+#include <stdarg.h>
 
-enum class Color {
-  Black,
-  Red,
-  Green,
-  Yellow,
-  Blue,
-  Magenta,
-  Cyan,
-  White
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum Color {
+  COLOR_BLACK,
+  COLOR_RED,
+  COLOR_GREEN,
+  COLOR_YELLOW,
+  COLOR_BLUE,
+  COLOR_MAGENTA,
+  COLOR_CYAN,
+  COLOR_WHITE
 };
 
-void print_color(Color c, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
-void print_bold(Color c, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void print_color(enum Color c, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void print_bold(enum Color c, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NCX_COLOR_H */

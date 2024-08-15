@@ -17,6 +17,12 @@
 #ifndef NCX_OPTS_H
 #define NCX_OPTS_H
 
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ncx_options {
   bool use_ssl;
   unsigned short port;
@@ -25,5 +31,9 @@ struct ncx_options {
 
 const char *ncx_opts_dir();
 int ncx_opts_parse(int argc, char *argv[], struct ncx_options *opts);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NCX_OPTS_H */

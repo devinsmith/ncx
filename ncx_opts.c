@@ -16,15 +16,16 @@
 
 #include <sys/stat.h>
 
-#include <cerrno>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <pwd.h>
 #include <unistd.h>
 
 #include "ncx_opts.h"
-#include "ncx_main.h"
+
+extern const char *progname;
 
 static char s_conf_dir[1024];
 
@@ -64,7 +65,7 @@ static void usage(int err)
 int ncx_opts_parse(int argc, char *argv[], struct ncx_options *opts)
 {
   struct passwd *pw = getpwuid(getuid());
-  if (pw == nullptr) {
+  if (pw == NULL) {
     fprintf(stderr, "Fatal: Can't get your user info.\n");
     return -1;
   }
@@ -92,7 +93,7 @@ int ncx_opts_parse(int argc, char *argv[], struct ncx_options *opts)
       }
     } else {
       char *p_colon = strchr(p, ':');
-      if (p_colon != nullptr) {
+      if (p_colon != NULL) {
         *p_colon = '\0';
         opts->server = p;
         opts->port = atoi(p_colon + 1);

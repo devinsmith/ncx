@@ -11,7 +11,7 @@ set(SOURCES
   ncx_io.cpp ncx_io.h
   ncx_main.cpp ncx_main.h
   ncx_net.cpp ncx_net.h
-  ncx_opts.cpp ncx_opts.h)
+  ncx_opts.c ncx_opts.h)
 
 
 

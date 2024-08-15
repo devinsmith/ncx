@@ -8,7 +8,7 @@ find_package(OpenSSL REQUIRED)
 set(SOURCES
   ncx_certs.c ncx_certs.h
   ncx_color.c ncx_color.h
-  ncx_io.cpp ncx_io.h
+  ncx_io.c ncx_io.h
   ncx_main.cpp ncx_main.h
   ncx_net.cpp ncx_net.h
   ncx_opts.c ncx_opts.h)

@@ -28,6 +28,8 @@
 
 #include "ncx_net.h"
 
+#include <string>
+
 struct ncx_conn {
   int fd;
   SSL *ssl;
@@ -35,14 +37,13 @@ struct ncx_conn {
 };
 
 struct verify_ctx {
-  explicit verify_ctx(const CertManager& cm) : was_error(false), certmgr(cm) {}
+  verify_ctx() : was_error(false) {}
 
   bool was_error;
   std::string host;
   std::string fingerprint;
   std::string error;
   std::string cert;
-  const CertManager& certmgr;
 };
 static int ssl_verify_idx;
 
@@ -112,7 +113,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
   vctx = static_cast<verify_ctx *>(SSL_get_ex_data(ssl, ssl_verify_idx));
 
   std::string fingerprint = calc_fingerprint(err_cert);
-  if (vctx->certmgr.is_whitelisted(vctx->host, fingerprint)) {
+  if (ncx_certs_whitelist_get(vctx->host.c_str(), fingerprint.c_str())) {
     vctx->was_error = false;
     return 1;
   }
@@ -232,7 +233,7 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
   return 0;
 }
 
-struct ncx_conn *ncx_connect(const ncx_options *opts, CertManager& certmgr)
+struct ncx_conn *ncx_connect(const ncx_options *opts)
 {
   struct addrinfo hint{};
   struct addrinfo *address_list;
@@ -281,7 +282,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts, CertManager& certmgr)
     if (opts->use_ssl) {
       printf("SSL negotionation with %s\n", opts->server);
 
-      struct verify_ctx verify_ctx(certmgr);
+      struct verify_ctx verify_ctx;
       verify_ctx.host = opts->server;
       int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
       if (ssl_conn == -1) {
@@ -301,14 +302,13 @@ struct ncx_conn *ncx_connect(const ncx_options *opts, CertManager& certmgr)
             switch (ch) {
               case 'o':
                 // once
-                certmgr.whitelist_cert(opts->server,
-                                       verify_ctx.fingerprint, false);
+                ncx_certs_whitelist_add(opts->server, verify_ctx.fingerprint.c_str(), false);
                 valid_choice = true;
                 break;
               case 'a':
                 // always
-                certmgr.whitelist_cert(opts->server,
-                                       verify_ctx.fingerprint, true);
+                ncx_certs_whitelist_add(opts->server,
+                                       verify_ctx.fingerprint.c_str(), true);
                 valid_choice = true;
                 break;
               case 'n':

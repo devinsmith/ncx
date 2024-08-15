@@ -6,7 +6,7 @@ set(TARGET_NAME ncx)
 find_package(OpenSSL REQUIRED)
 
 set(SOURCES
-  ncx_certs.cpp ncx_certs.h
+  ncx_certs.c ncx_certs.h
   ncx_color.c ncx_color.h
   ncx_io.cpp ncx_io.h
   ncx_main.cpp ncx_main.h

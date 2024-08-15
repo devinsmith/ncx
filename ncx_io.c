@@ -17,8 +17,9 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-#include <cstdio>
-#include <cstring>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "ncx_color.h"
 #include "ncx_io.h"
@@ -91,7 +92,7 @@ static void process_line(struct ncx_app *app)
   char *data = app->m_buffer;
 
   if (app->user_id < 0) {
-    if (strstr(data, ">> You just logged on line") != nullptr) {
+    if (strstr(data, ">> You just logged on line") != NULL) {
       sscanf(data, "%*c%*c %*s %*s %*s %*s %*s %d", &app->user_id);
     }
   }
@@ -104,7 +105,7 @@ static void process_line(struct ncx_app *app)
   if (data[0] == '[') {
     // extract number
     char *tmp = strchr(data, ']');
-    if (tmp != nullptr) {
+    if (tmp != NULL) {
       *tmp = '\0';
 
       int num = atoi(data + 1);
@@ -165,7 +166,7 @@ int ncx_io_run(struct ncx_app *app)
   fd_set readfds;
   int conn_fd;
 
-  if (app->conn == nullptr) {
+  if (app->conn == NULL) {
     return -1;
   }
 
@@ -178,7 +179,7 @@ int ncx_io_run(struct ncx_app *app)
 
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  if (select(conn_fd + 1, &readfds, nullptr, nullptr, &tv) == -1) {
+  if (select(conn_fd + 1, &readfds, NULL, NULL, &tv) == -1) {
     // error
     fprintf(stderr, "select error\n");
     return -1;

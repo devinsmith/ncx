@@ -23,8 +23,6 @@ extern const char *progname;
 extern const char *progversion;
 
 struct ncx_app {
-  explicit ncx_app();
-
   struct ncx_conn *conn;
   int user_id;
   int dirty;

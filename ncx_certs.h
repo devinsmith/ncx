@@ -17,29 +17,20 @@
 #ifndef NCX_CERTS_H
 #define NCX_CERTS_H
 
-#include <string>
-#include <vector>
+#include <stdbool.h>
 
-struct Cert {
-  Cert(const std::string& hn, const std::string& fp) :
-    hostname(hn), fingerprint(fp) {}
-  std::string hostname;
-  std::string fingerprint;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class CertManager {
-public:
-  CertManager();
+void ncx_certs_init(void);
+void ncx_certs_destroy(void);
 
-  bool is_whitelisted(const std::string& host, const std::string& fp) const;
-  void whitelist_cert(const std::string& host, const std::string& fp,
-      bool store);
-private:
-  void read_certs();
-  void append_cert(const char *hostname, const char *fingerprint);
+bool ncx_certs_whitelist_get(const char *host, const char *fp);
+void ncx_certs_whitelist_add(const char *host, const char *fp, bool store);
 
-  std::string _cert_file;
-  std::vector<Cert> _cert_list;
-};
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NCX_CERTS_H */

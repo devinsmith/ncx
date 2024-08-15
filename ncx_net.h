@@ -26,7 +26,7 @@ extern "C" {
 
 void ncx_net_init();
 
-struct ncx_conn *ncx_connect(const struct ncx_options *opts, CertManager& certmgr);
+struct ncx_conn *ncx_connect(const struct ncx_options *opts);
 void ncx_disconnect(struct ncx_conn *conn);
 int ncx_net_getfd(struct ncx_conn *conn);
 int ncx_send_data(struct ncx_conn *conn, const char *data, size_t sz);

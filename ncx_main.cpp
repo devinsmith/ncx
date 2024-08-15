@@ -54,17 +54,17 @@ static void ncx_exit(struct ncx_app *app)
     ncx_disconnect(app->conn);
   }
 
-  tcsetattr(fileno(stdin), TCSAFLUSH, &g_saved_attr);
-}
+  ncx_certs_destroy();
 
-ncx_app::ncx_app() : conn{nullptr}, user_id{-1}, dirty{0}, chars{0}, m_buf_idx{0}
-{
+  tcsetattr(fileno(stdin), TCSAFLUSH, &g_saved_attr);
 }
 
 int main(int argc, char *argv[])
 {
-  struct ncx_app app;
+  struct ncx_app app = {};
   struct ncx_options opts;
+
+  app.user_id = -1;
 
   printf("%s %s\n", progname, progversion);
 
@@ -75,8 +75,8 @@ int main(int argc, char *argv[])
 
   setup_tty();
 
-  CertManager certmgr;
-  app.conn = ncx_connect(&opts, certmgr);
+  ncx_certs_init();
+  app.conn = ncx_connect(&opts);
   if (app.conn == nullptr) {
 //    fprintf(stderr, "Couldn't connect.\n");
     ncx_exit(&app);

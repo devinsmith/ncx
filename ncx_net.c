@@ -17,10 +17,10 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <ctype.h>
 
@@ -108,7 +108,7 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
    */
   SSL *ssl = (SSL *)X509_STORE_CTX_get_ex_data(ctx,
       SSL_get_ex_data_X509_STORE_CTX_idx());
-  vctx = static_cast<verify_ctx *>(SSL_get_ex_data(ssl, ssl_verify_idx));
+  vctx = SSL_get_ex_data(ssl, ssl_verify_idx);
 
   calc_fingerprint(err_cert, vctx->fingerprint);
   if (ncx_certs_whitelist_get(vctx->host, vctx->fingerprint)) {
@@ -202,10 +202,10 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
   return preverify_ok;
 }
 
-static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
+static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx *vctx)
 {
   conn->ssl_ctx = SSL_CTX_new(TLS_client_method());
-  if (conn->ssl_ctx == nullptr) {
+  if (conn->ssl_ctx == NULL) {
     ERR_print_errors_fp(stderr);
     return -1;
   }
@@ -214,14 +214,14 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
   SSL_CTX_set_verify_depth(conn->ssl_ctx, 150);
 
   conn->ssl = SSL_new(conn->ssl_ctx);
-  if (conn->ssl == nullptr) {
+  if (conn->ssl == NULL) {
     ERR_print_errors_fp(stderr);
     return -1;
   }
 
   ssl_verify_idx = SSL_get_ex_new_index(
-      0, (void *)"verify context", nullptr, nullptr, nullptr);
-  SSL_set_ex_data(conn->ssl, ssl_verify_idx, &vctx);
+      0, (void *)"verify context", NULL, NULL, NULL);
+  SSL_set_ex_data(conn->ssl, ssl_verify_idx, vctx);
 
   if (!SSL_set_fd(conn->ssl, conn->fd)) {
     ERR_print_errors_fp(stderr);
@@ -232,17 +232,17 @@ static int ncx_ssl_connect(struct ncx_conn *conn, struct verify_ctx& vctx)
   if ((ret = SSL_connect(conn->ssl)) == -1) {
     SSL_free(conn->ssl);
     SSL_CTX_free(conn->ssl_ctx);
-    conn->ssl = nullptr;
-    conn->ssl_ctx = nullptr;
+    conn->ssl = NULL;
+    conn->ssl_ctx = NULL;
     return -1;
   }
 
   return 0;
 }
 
-struct ncx_conn *ncx_connect(const ncx_options *opts)
+struct ncx_conn *ncx_connect(const struct ncx_options *opts)
 {
-  struct addrinfo hint{};
+  struct addrinfo hint;
   struct addrinfo *address_list;
   struct addrinfo *addr;
   char port_string[33];
@@ -257,12 +257,12 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
   int gai_ret = getaddrinfo(opts->server, port_string, &hint,
     &address_list);
   if (gai_ret != 0) {
-    if (address_list != nullptr) {
+    if (address_list != NULL) {
       freeaddrinfo(address_list);
     }
     fprintf(stderr, "getaddrinfo: %s: %s\n", opts->server,
       gai_strerror(gai_ret));
-    return nullptr;
+    return NULL;
   }
 
   int sock = -1;
@@ -281,7 +281,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
       fprintf(stderr, "Failed to connect to %s:%d\n",
               opts->server, opts->port);
       freeaddrinfo(address_list);
-      return nullptr;
+      return NULL;
     }
 
     conn = (struct ncx_conn *)calloc(1, sizeof(struct ncx_conn));
@@ -291,7 +291,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
 
       struct verify_ctx verify_ctx = {};
       verify_ctx.host = opts->server;
-      int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
+      int ssl_conn = ncx_ssl_connect(conn, &verify_ctx);
       if (ssl_conn == -1) {
         if (verify_ctx.was_error) {
           printf("Failed to connect due to verification errors\n");
@@ -320,7 +320,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
                 break;
               case 'n':
                 ncx_disconnect(conn);
-                return nullptr;
+                return NULL;
                 break;
               case 'v':
                 printf("%s\n", verify_ctx.cert);
@@ -334,7 +334,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
                   opts->server, opts->port);
           freeaddrinfo(address_list);
           ncx_disconnect(conn);
-          return nullptr;
+          return NULL;
         }
       } else {
         connected = true;
@@ -352,12 +352,12 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
 
 void ncx_disconnect(struct ncx_conn *conn)
 {
-  if (conn != nullptr) {
-    if (conn->ssl != nullptr) {
+  if (conn != NULL) {
+    if (conn->ssl != NULL) {
       SSL_shutdown(conn->ssl);
       SSL_free(conn->ssl);
     }
-    if (conn->ssl_ctx != nullptr) {
+    if (conn->ssl_ctx != NULL) {
       SSL_CTX_free(conn->ssl_ctx);
     }
     close(conn->fd);

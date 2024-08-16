@@ -22,13 +22,13 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <ctype.h>
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <arpa/inet.h>
 
 #include "ncx_net.h"
-
-#include <string>
 
 struct ncx_conn {
   int fd;
@@ -37,13 +37,11 @@ struct ncx_conn {
 };
 
 struct verify_ctx {
-  verify_ctx() : was_error(false) {}
-
   bool was_error;
-  std::string host;
-  std::string fingerprint;
-  std::string error;
-  std::string cert;
+  const char *host;
+  char fingerprint[(EVP_MAX_MD_SIZE * 2) + 1];
+  const char *error;
+  char *cert;
 };
 static int ssl_verify_idx;
 
@@ -74,10 +72,9 @@ static int sock_connect(struct addrinfo *addr)
   return sock;
 }
 
-static std::string calc_fingerprint(X509 *cert)
+static unsigned int calc_fingerprint(X509 *cert, char *fp)
 {
   unsigned char md[EVP_MAX_MD_SIZE];
-  std::string hash;
   unsigned int md_len = (unsigned int)sizeof(md);
   static const char hex[] = "0123456789abcdef";
 
@@ -87,12 +84,13 @@ static std::string calc_fingerprint(X509 *cert)
   if (success) {
     unsigned int j;
     for (j = 0; j < md_len; ++j) {
-      hash += hex[md[j] >> 4];
-      hash += hex[md[j]&0xf];
+      *fp++ = hex[md[j] >> 4];
+      *fp++ = hex[md[j]&0xf];
     }
   }
 
-  return hash;
+  *fp = '\0';
+  return md_len;
 }
 
 // Work in progress
@@ -112,8 +110,8 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
       SSL_get_ex_data_X509_STORE_CTX_idx());
   vctx = static_cast<verify_ctx *>(SSL_get_ex_data(ssl, ssl_verify_idx));
 
-  std::string fingerprint = calc_fingerprint(err_cert);
-  if (ncx_certs_whitelist_get(vctx->host.c_str(), fingerprint.c_str())) {
+  calc_fingerprint(err_cert, vctx->fingerprint);
+  if (ncx_certs_whitelist_get(vctx->host, vctx->fingerprint)) {
     vctx->was_error = false;
     return 1;
   }
@@ -140,12 +138,12 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     // We failed verification, so extract some information to indicate the
     // problem
     vctx->error = X509_verify_cert_error_string(err);
-    vctx->fingerprint = fingerprint;
+    //vctx->fingerprint = fingerprint;
 
     printf("===================================\n");
     printf("SSL certificate verification failed\n");
     printf("Error: %d (%s)\n", err, X509_verify_cert_error_string(err));
-    printf("Fingerprint: %s\n", calc_fingerprint(err_cert).c_str());
+    printf("Fingerprint: %s\n", vctx->fingerprint);
 
     // Dump subject and issuer.
     BIO *bio = BIO_new(BIO_s_mem());
@@ -185,7 +183,16 @@ static int verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
       if (l <= 0)
         break;
       line[l] = '\0';
-      vctx->cert += line;
+      size_t existing_len = 0;
+      size_t new_len;
+      if (vctx->cert != NULL) {
+        existing_len = strlen(vctx->cert);
+      }
+      new_len = l + existing_len + 1;
+      vctx->cert = (char *)realloc(vctx->cert, new_len);
+      memcpy(vctx->cert + existing_len, line, l);
+      vctx->cert[new_len] = '\0';
+      //vctx->cert += line;
     }
     BIO_free(bio);
     //printf("%s", vctx->cert.c_str());
@@ -282,7 +289,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
     if (opts->use_ssl) {
       printf("SSL negotionation with %s\n", opts->server);
 
-      struct verify_ctx verify_ctx;
+      struct verify_ctx verify_ctx = {};
       verify_ctx.host = opts->server;
       int ssl_conn = ncx_ssl_connect(conn, verify_ctx);
       if (ssl_conn == -1) {
@@ -302,13 +309,13 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
             switch (ch) {
               case 'o':
                 // once
-                ncx_certs_whitelist_add(opts->server, verify_ctx.fingerprint.c_str(), false);
+                ncx_certs_whitelist_add(opts->server, verify_ctx.fingerprint, false);
                 valid_choice = true;
                 break;
               case 'a':
                 // always
-                ncx_certs_whitelist_add(opts->server,
-                                       verify_ctx.fingerprint.c_str(), true);
+                ncx_certs_whitelist_add(opts->server, verify_ctx.fingerprint,
+                    true);
                 valid_choice = true;
                 break;
               case 'n':
@@ -316,12 +323,12 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
                 return nullptr;
                 break;
               case 'v':
-                printf("%s\n", verify_ctx.cert.c_str());
+                printf("%s\n", verify_ctx.cert);
                 break;
               default:
                 break;
             }
-          };
+          }
         } else {
           fprintf(stderr, "Failed to connect to %s:%d\n",
                   opts->server, opts->port);
@@ -332,6 +339,7 @@ struct ncx_conn *ncx_connect(const ncx_options *opts)
       } else {
         connected = true;
       }
+      free(verify_ctx.cert);
     } else {
       connected = true;
     }

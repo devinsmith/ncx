@@ -15,8 +15,8 @@
  */
 
 #include <termios.h>
-#include <cstdio>
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "ncx_certs.h"
 #include "ncx_io.h"
@@ -50,7 +50,7 @@ static void setup_tty()
 
 static void ncx_exit(struct ncx_app *app)
 {
-  if (app->conn != nullptr) {
+  if (app->conn != NULL) {
     ncx_disconnect(app->conn);
   }
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   ncx_certs_init();
   app.conn = ncx_connect(&opts);
-  if (app.conn == nullptr) {
+  if (app.conn == NULL) {
 //    fprintf(stderr, "Couldn't connect.\n");
     ncx_exit(&app);
   }

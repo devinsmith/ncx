@@ -252,6 +252,7 @@ struct ncx_conn *ncx_connect(const struct ncx_options *opts)
   hint.ai_family = PF_UNSPEC; // PF_INET or PF_INET6
   hint.ai_socktype = SOCK_STREAM;
   hint.ai_protocol = IPPROTO_TCP;
+  hint.ai_flags = 0;
 
   snprintf(port_string, sizeof(port_string), "%d", opts->port);
   int gai_ret = getaddrinfo(opts->server, port_string, &hint,
